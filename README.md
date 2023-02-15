@@ -17,17 +17,14 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 
 2） OneRec2_NeighbourEnhancedDNN 行为和内容两种信号的强化建模。增强用户/item的表达和他们的交互.
 
-相关文章：《OneRec2_NeighbourEnhancedyoutubeDNN：基于图的推荐系统Embedding表达增强》，待放出链接。
-论文： Neighbor Based Enhancement for the Long-Tail Ranking Problem in Video Rank Models
-Z He, X Xiao, Y Zhou, DLP-KDD 2021
+相关文章：《OneRec2_NeighbourEnhancedyoutubeDNN：基于图的推荐系统Embedding表达增强》，待放出链接。  
+相关论文： [Neighbor Based Enhancement for the Long-Tail Ranking Problem in Video Rank Models](https://dlp-kdd.github.io/assets/pdf/DLP-KDD_2021_paper_7.pdf)
+,Z He, X Xiao, Y Zhou, DLP-KDD 2021
 
-3） OneRec3_Social4Rec 行为/内容之外使用social interest信息。增强用户的表达，有效融合行为，内容，社交兴趣三种信号。
-
-相关文章：《OneRec3-Social4Rec：社交兴趣增强的推荐算法》 ,待放出链接。
+3） OneRec3_Social4Rec 行为/内容之外使用social interest信息。增强用户的表达，有效融合行为，内容，社交兴趣三种信号。  
+相关文章：《OneRec3-Social4Rec：社交兴趣增强的推荐算法》 ,待放出链接。  
 相关论文：投递中，
 
-4） OneRec4_SparseSharing 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。
-
-相关文章：《OneRec4_LT4REC:基于彩票假设的多任务学习算法》待放出链接。
-
+4） OneRec4_SparseSharing 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。  
+相关文章：《OneRec4_LT4REC:基于彩票假设的多任务学习算法》待放出链接。  
 相关论文：https://arxiv.org/abs/2008.09872
