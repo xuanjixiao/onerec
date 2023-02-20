@@ -1,0 +1,6 @@
+tensorflow==1.12
+tensorboard==1.12
+pyyaml
+absl-py
+numpy
+sklearn

@@ -1,0 +1,152 @@
+feature_configs:
+    FEA_SVID: {dtype: string, size: 1}
+    FEA_SCP: {dtype: string, size: 1}           
+    FEA_SICAT1: {dtype: string, size: 1}          
+    FEA_SICAT2: {dtype: string, size: 1}          
+    FEA_SIKEYWORD: {dtype: string, size: -1}  
+    FEA_STAG: {dtype: string, size: -1}
+    FEA_VID: {dtype: string, size: 1}   
+    FEA_CP: {dtype: string, size: 1}   
+    FEA_ICAT1: {dtype: string, size: 1}   
+    FEA_ICAT2: {dtype: string, size: 1}  
+    FEA_IXFTAG: {dtype: string, size: -1}  
+    FEA_AGE: {dtype: string, size: 1}
+    FEA_IKEYWORD: {dtype: string, size: -1}  
+    FEA_DURATION: {dtype: string, size: 1}
+    FEA_ALGID: {dtype: string, size: 1}
+    FEA_ORDER: {dtype: string, size: 1}   
+    FEA_COVERQUALITY: {dtype: string, size: 1}
+    FEA_UID: {dtype: string, size: 1}
+    FEA_UGROUP: {dtype: string, size: 1} 
+    FEA_UCAT: {dtype: string, size: -1}
+    seqnum: {dtype: string, size: 1}
+    pctr: {dtype: string, size: 1}
+    cvrlabel: {dtype: float32,size: 1}
+    label: {dtype: int64, size: 1}
+
+transform:
+    categorical_features:
+        - FEA_SVID
+        - FEA_SCP           
+        - FEA_SICAT1         
+        - FEA_SICAT2         
+        - FEA_SIKEYWORD      
+        - FEA_STAG
+        - FEA_VID          
+        - FEA_CP              
+        - FEA_ICAT1          
+        - FEA_ICAT2          
+        - FEA_IXFTAG       
+        - FEA_IKEYWORD      
+        - FEA_ORDER          
+        - FEA_COVERQUALITY
+        - FEA_ALGID
+        - FEA_AGE
+        - FEA_DURATION
+        - FEA_UID
+        - FEA_UGROUP
+        - FEA_UCAT
+    numerical_features: {}
+        
+network:
+    categorical_features:
+        - FEA_SVID
+        - FEA_SCP          
+        - FEA_SICAT1         
+        - FEA_SICAT2          
+        - FEA_VID          
+        - FEA_CP             
+        - FEA_ICAT1          
+        - FEA_ICAT2          
+        - FEA_ORDER          
+        - FEA_COVERQUALITY
+        - FEA_AGE
+        - FEA_DURATION
+        - FEA_ALGID
+        - FEA_UID
+        - FEA_UGROUP
+
+
+    numerical_features: {}
+        
+    multivalue_features:
+        - FEA_SIKEYWORD      
+        - FEA_STAG
+        - FEA_IXFTAG        
+        - FEA_IKEYWORD    
+        - FEA_UCAT
+    pooling_type: mean
+
+    attention_features: []
+            #    - [FEA_VID, FEA_PV_REAL]
+            #    - [FEA_VID, FEA_PV_OFF]
+            #    - [FEA_VID, FEA_PV_MON]
+
+ctrmetrics:
+    - name: AUC
+      type: auc
+      label: label
+
+cvrmetrics:
+    - name: MSE
+      type: weighted_mse
+      label: cvrlabel
+    
+
+cvrloss:
+    type: weighted_mse
+    label: cvrlabel 
+    
+ctrloss:
+    type: focal_loss
+    label: label
+    alpha: 0.75
+    gamma: 2  
+
+batch_size: 32 #   In the real systerm, the value is  4096. 
+embed_size: 16
+default_num_oov_buckets: 10
+map_num_oov_buckets:
+    FEA_VID:  15000000
+    FEA_IXFTAG: 500000
+    FEA_UID: 10000000
+    FEA_UCITY: 20
+    FEA_GROUP: 1600
+    FEA_ICAT2: 1000
+    FEA_CP: 400000
+    FEA_ALGID: 200
+    FEA_ORDER: 200
+    FEA_AGE: 200
+    FEA_DURATION: 3000
+
+map_top_k_to_select: {} # default is topk=0
+map_shared_embedding:
+    FEA_SVID: FEA_VID
+  
+    FEA_SCP: FEA_CP
+    FEA_SICAT1: FEA_ICAT2
+    FEA_SICAT2: FEA_ICAT2
+    FEA_ICAT1:  FEA_ICAT2
+    FEA_UCAT: FEA_ICAT2
+    FEA_STAG: FEA_IXFTAG
+    FEA_IKEYWORD: FEA_IXFTAG
+    
+hidden_size: [512,256,128]
+validate_steps: 5
+log_steps: 5
+learning_rate: 0.0001
+train_file_shuffle: True 
+train_shuffle_buffer_size: 10
+train_epochs: 1
+validate_duaring_training: True
+
+
+
+test_tfrecord_path: /****/LT4REC/dataset/part-r-00002.gz
+train_tfrecord_path: /****/LT4REC/dataset/part-r-00002.gz
+val_tfrecord_path: /****/LT4REC/dataset/part-r-00002.gz
+save_checkpoints_dir: /****/LT4REC/checkpoints/single/chk_points/              
+restore_checkpoint_path: /****/LT4REC/checkpoints/single/chk_points/                   
+tensorboard_logdir: /****/LT4REC/Logs/single/tb_logs/
+save_mtl_checkpoints_dir: /****/LT4REC/checkpoints/mtl/                      
+restore_mtl_checkpoint_path: /****/LT4REC/checkpoints/mtl/
