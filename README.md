@@ -32,7 +32,7 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 相关论文：https://arxiv.org/abs/2008.09872
 
 
-4）OneRec4_SessionLTV 对于一个session浏览过程，结合短期reward和长期reward，来建模用户价值，从而找到LTV价值更高的结果给到用户，在视频场景和google RL simulator上均有正向效果。 
+4）OneRec4_SessionLTV 对于一个session浏览过程，结合短期reward和长期reward，来建模用户价值，从而找到LTV价值更高的结果给到用户，在视频场景和google RL simulator上均有正向效果。  
 相关论文：https://arxiv.org/pdf/2302.06101.pdf
 
 
