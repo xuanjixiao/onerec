@@ -25,7 +25,7 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 
 2） OneRec2_Social4Rec 行为/内容之外使用social interest信息。增强用户的表达，有效融合行为，内容，社交兴趣三种信号。  
 相关文章：《OneRec3-Social4Rec：社交兴趣增强的推荐算法》 ,待放出中文链接。  
-相关论文：投递中，
+相关论文：https://arxiv.org/pdf/2302.09971.pdf
 
 3） OneRec3_SparseSharing 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。  
 相关文章：《OneRec4_LT4REC:基于彩票假设的多任务学习算法》待放出中文链接。  
