@@ -30,8 +30,8 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 3） OneRec3_SparseSharing 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。  
 相关文章：《OneRec4_LT4REC:基于彩票假设的多任务学习算法》待放出中文链接。  
 相关论文：https://arxiv.org/abs/2008.09872  
-后续CVR多任务工作：[Click-aware Structure Transfer with Sample Weight Assignment for Post-Click Conversion Rate Estimation](https://arxiv.org/abs/2304.01169), 2023,in the proceedings of European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases  
-前序CVR多任务工作：[Calibration4CVR：2018年关于“神经元级别共享的多任务CVR”的初探-2018](https://zhuanlan.zhihu.com/p/611453829)
+后续2023CVR多任务工作：[Click-aware Structure Transfer with Sample Weight Assignment for Post-Click Conversion Rate Estimation](https://arxiv.org/abs/2304.01169), 2023,in the proceedings of European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases  
+前序2018CVR多任务工作：[Calibration4CVR：2018年关于“神经元级别共享的多任务CVR”的初探-2018](https://zhuanlan.zhihu.com/p/611453829)
 
 
 4）OneRec4_SessionLTV 对于一个session浏览过程，结合短期reward和长期reward，来建模用户价值，从而找到LTV价值更高的结果给到用户，在视频场景和google RL simulator上均有正向效果。  
