@@ -19,22 +19,22 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 
 1） OneRec1_NeighbourEnhancedDNN 行为和内容两种信号的强化建模。增强用户/item的表达和他们的交互.
 
-相关文章：《OneRec2_NeighbourEnhancedyoutubeDNN：基于图的推荐系统Embedding表达增强》，待放出中文链接。  
+相关文章：《OneRec1_NeighbourEnhancedyoutubeDNN：基于图的推荐系统Embedding表达增强》，待放出中文链接。  
 相关论文： [Neighbor Based Enhancement for the Long-Tail Ranking Problem in Video Rank Models](https://dlp-kdd.github.io/assets/pdf/DLP-KDD_2021_paper_7.pdf)
 ,Z He, X Xiao, Y Zhou, DLP-KDD 2021
 
 2） OneRec2_Social4Rec 行为/内容之外使用social interest信息。增强用户的表达，有效融合行为，内容，社交兴趣三种信号。  
-相关文章：《OneRec3-Social4Rec：社交兴趣增强的推荐算法》，待放出中文链接。   
+相关文章：《OneRec2_Social4Rec：社交兴趣增强的推荐算法》，待放出中文链接。   
 相关论文：https://arxiv.org/pdf/2302.09971.pdf
 
 3） OneRec3_SparseSharing 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。  
-相关文章：[《OneRec4_LT4REC:基于彩票假设的多任务学习算法》](https://mp.weixin.qq.com/s/4PO6EK3b4VCKO0ibd76C9w)。  
+相关文章：[《OneRec3_LT4REC:基于彩票假设的多任务学习算法》](https://mp.weixin.qq.com/s/4PO6EK3b4VCKO0ibd76C9w)。  
 相关论文：https://arxiv.org/abs/2008.09872  
-后续2023CVR多任务工作：[Click-aware Structure Transfer with Sample Weight Assignment for Post-Click Conversion Rate Estimation](https://arxiv.org/abs/2304.01169), 2023,in the proceedings of European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases  
+后续2023CVR多任务工作：[Click-aware Structure Transfer with Sample Weight Assignment for Post-Click Conversion Rate Estimation](https://arxiv.org/abs/2304.01169), ECML-pkdd 2023.
 前序2018CVR多任务工作：[Calibration4CVR：2018年关于“神经元级别共享的多任务CVR”的初探-2018](https://zhuanlan.zhihu.com/p/611453829)
 
 
 4）OneRec4_SessionLTV 对于一个session浏览过程，结合短期reward和长期reward，来建模用户价值，从而找到LTV价值更高的结果给到用户，在视频场景和google RL simulator上均有正向效果。  
-相关论文：https://arxiv.org/pdf/2302.06101.pdf， Oral Presentation at Workshop on Decision Making for Information Retrieval and Recommender Systems in WWW 2023
+相关论文：https://arxiv.org/pdf/2302.06101.pdf， WWW 2023
 
 
