@@ -1,0 +1,20 @@
+1 meeting v1--talking about the future directions and references
+
+1.1 社交&行为. social4rec v2--Fuse social network information and behaviors signal. -huaqiang/andy
+1）主要方案：	
+	A)排序--升级v1版本算法。社交信息单簇（一个人可以从属多个兴趣组）变多簇，多簇（社交域）对多峰（行为域）。 —华强。
+	B)召回----社交信息多簇和图联通方式进行召回 --andy
+	C)其他。社交信息以一种指导或者修正的方式加进去，比如类似NLP大模型推理的时候可能需要加一句话作为指导（有些算术题目，如果加上let’s step by step 就会得到更加正确的答案）——和欧阳合作。参考：Anoop Deoras (Amazon)--Topic: Zero Shot Recommenders, Large Language Models and Prompt Engineering 降了不少跨域的， 
+2）问题: the noise of info passing in graph? we can use external info/knoledge or node's info as supervisory signals to calibrate the graph connection confidence. Or we can use self-supervised learning. All in all, we want to learning a better info extraction of the graph and then fuse the knowledge with behaviors. Refer: dual-learning,Ripple-net,social4rec v1.
+3）参考References: 
+基于社交兴趣增强的视频推荐算法 https://zhuanlan.zhihu.com/p/639351979
+公开数据集合：
+
+1.2 Search based rec—qichao。 确定性行为和随机行为，nlp和行为。搜索推荐做mmoe，两个expert。
+
+1.3 多模态&行为-wenqi。
+1）方案：
+2）问题：1)相同图像的ctr(点击行为）分布差异比较大，融合进行为为主模型问题。比如白牌服装和品牌服装长的一样。行为-买锅推勺子，mmu-买锅推锅 2）问题，低级表征和高级表征。低级表征，embedding经常拿不到效果，hulu经历把embedding变成标签才拿到效果。
+
+1.4 multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。
+问题：1）比如直播优势类目是衣服，电商优势类目是食品。分布差别大，数据聚合起来知识比较多。2）不同域的序列信息加进来，兴趣不一定一致，比如商品域经常出现偏热门问题（淘宝直播使用其他域信息发现，商品域pvr很高偏热门）。 
