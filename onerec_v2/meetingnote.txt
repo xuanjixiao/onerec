@@ -8,7 +8,8 @@
 2）问题: the noise of info passing in graph? we can use external info/knoledge or node's info as supervisory signals to calibrate the graph connection confidence. Or we can use self-supervised learning. All in all, we want to learning a better info extraction of the graph and then fuse the knowledge with behaviors. Refer: dual-learning,Ripple-net,social4rec v1.
 3）参考References: 
 基于社交兴趣增强的视频推荐算法 https://zhuanlan.zhihu.com/p/639351979
-公开数据集合：
+公开数据集合-tenrec: 1)the dataset contains social and behavior data 2)intro: https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html
+
 
 1.2 Search based rec—qichao。 确定性行为和随机行为，nlp和行为。搜索推荐做mmoe，两个expert。
 
