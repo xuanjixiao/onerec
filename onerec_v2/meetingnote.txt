@@ -1,4 +1,4 @@
-1 meeting v1--talking about the future directions and references
+1 meeting 202307--talking about the future directions and references
 
 1.1 社交&行为. social4rec v2--Fuse social network information and behaviors signal. -huaqiang/andy/wanglin
 1）主要方案：	
@@ -19,3 +19,23 @@
 
 1.4 multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。
 问题：1）比如直播优势类目是衣服，电商优势类目是食品。分布差别大，数据聚合起来知识比较多。2）不同域的序列信息加进来，兴趣不一定一致，比如商品域经常出现偏热门问题（淘宝直播使用其他域信息发现，商品域pvr很高偏热门）。--wenhao/bangzheng 
+
+2 meeting note-20230905.
+2.1 社交&行为：
+1）下次会议：user-user关系置信度，染后修正结果。dongqian说的置信度文章。-Andy
+2）下次会议：图关系提取 ，和 融合进入其他模型比如推荐模型—wanglin
+3）下次会议：调研社交用在排序具体方案？—yuqiao/华强
+
+2.2 搜索信号运用到推荐里面--qichao
+1. 特征: 搜索信号行为序列特征直接运用到模型里面
+2. 特征: 搜索信号具体行为序列与推荐里面曝光未点击行为序列通过对比学习建模负向行为
+3. 特征: 搜索信号可以作为query去检索长序列, 来建模长序列建模
+4. 搜索场景样本训练模型, 产出emb 给推荐场景使用
+5. 搜索场景与推荐场景联合建模, 会比较麻烦
+下次会议：确定具体方案
+
+2.3 多模态&行为-wenqi
+下次会议：需要出具体方案，分享，
+
+2.4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。
+下次会议：具体方案确定，包括多个域的序列如何融合--wenhao
