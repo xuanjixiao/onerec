@@ -64,10 +64,13 @@
 3 meeting 20231031
 1） 社交&行为：
 社交和图的建模方案确定。链接？下次会议：初步开发代码在公开数据集合尝试。—wanglin，
-下次会议：调研社交用在排序具体方案。—yuqiao/华强
+下次会议：调研社交用在排序具体方案。—yuqiao/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后字啊融合。
 
 2.2 搜索信号运用到推荐里面--qichao
 1. 方案: 搜索信号具体行为序列与推荐里面曝光未点击行为序列通过对比学习建模负向行为。链接：下次：方案需要细化。
+确实是有点对比学习的意思：使用 target-item 从 pos_seq 提取出emb是跟 target-item相关的pos_seq-item，使用 target-item 从 neg_seq 提取出emb是跟 target-item相关的 neg_seq-item，之后计算两者：pos_seq-item和neg_seq-item 互信息更大
+pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增强
+让序列特征emb学习的更好
 
 2.3 多模态&行为-wenqi
 目标：将item的多模态特征/语义特征融入到user2item的行为数据学习当中
