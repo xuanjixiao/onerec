@@ -5,11 +5,16 @@
 	A)排序--升级v1版本算法。社交信息单簇（一个人可以从属多个兴趣组）变多簇，多簇（社交域）对多峰（行为域）。 —华强。
 	B)召回----社交信息多簇和图联通方式进行召回 --andy
 	C)其他。社交信息以一种指导或者修正的方式加进去，比如类似NLP大模型推理的时候可能需要加一句话作为指导（有些算术题目，如果加上let’s step by step 就会得到更加正确的答案）——和欧阳合作。参考：Anoop Deoras (Amazon)--Topic: Zero Shot Recommenders, Large Language Models and Prompt Engineering 降了不少跨域的， 
-2）问题: the noise of info passing in graph? we can use external info/knoledge or node's info as supervisory signals to calibrate the graph connection confidence. Or we can use self-supervised learning. All in all, we want to learning a better info extraction of the graph and then fuse the knowledge with behaviors. Refer: dual-learning,Ripple-net,social4rec v1.
-3）参考References: 
-基于社交兴趣增强的视频推荐算法 https://zhuanlan.zhihu.com/p/639351979
-公开数据集合-tenrec: 1)the dataset contains social and behavior data 2)intro: https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html
+	  采用自监督对比学习对社交数据进行增强，具体而言：1）采用 SVD 分解对 U-I 矩阵进行分解，得到 user 的 embedding，  2）利用 user embedding 进行点积运算，设置相似度阈值，重构一个新的 U-U social graph，3）将重构的social graph 与已知的 social graph 进行对比学习，以增强推荐性能。
+2）问题: a) the noise of info passing in graph? we can use external info/knoledge or node's info as supervisory signals to calibrate the graph connection confidence. Or we can use self-supervised learning. 
+	b) All in all, we want to learning a better info extraction of the graph and then fuse the knowledge with behaviors. Refer: dual-learning,Ripple-net,social4rec v1.
+	c) SVD is a computational-intensive algorithom, which is not suitable for the industrial senarios. We need to find the substitute or reduce the computational complexity.
 
+3）参考References: 
+	a) 基于社交兴趣增强的视频推荐算法 https://zhuanlan.zhihu.com/p/639351979
+	b) 公开数据集合-tenrec: 1)the dataset contains social and behavior data 2)intro: https://static.qblv.qq.com/qblv/h5/algo-frontend/tenrec_dataset.html
+	c) LightGCL: Simple Yet Effective Graph Contrastive Learning for Recommendation
+	d) Socially-Aware Self-Supervised Tri-Training for Recommendation
 
 1.2 Search based rec—qichao。 确定性行为和随机行为，nlp和行为。搜索推荐做mmoe，两个expert。
 
