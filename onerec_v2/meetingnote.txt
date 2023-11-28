@@ -91,7 +91,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 
 4 meeting 20231128
 1） 社交&行为：
-社交和图的建模方案确定。socialLG。 contrative loss vs bpr loss？增加一张图示 —wanglin
+社交和图的建模方案确定。socialLGN + contrative learning.  overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4  —wanglin
 下次会议：调研社交用在排序具体方案。—yuqiao/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
 
 2.2 搜索信号运用到推荐里面--qichao
