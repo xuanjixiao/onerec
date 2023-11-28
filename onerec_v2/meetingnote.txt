@@ -89,4 +89,26 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 下周：和zhuoxi一起细化方案.
 
 
+4 meeting 20231128
+1） 社交&行为：
+社交和图的建模方案确定。socialLG。 contrative loss vs bpr loss？ —wanglin
+下次会议：调研社交用在排序具体方案。—yuqiao/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
+
+2.2 搜索信号运用到推荐里面--qichao
+1. 方案: 搜索信号具体行为序列与推荐里面曝光未点击行为序列通过对比学习建模负向行为。链接：下次：方案需要细化。
+确实是有点对比学习的意思：使用 target-item 从 pos_seq 提取出emb是跟 target-item相关的pos_seq-item，使用 target-item 从 neg_seq 提取出emb是跟 target-item相关的 neg_seq-item，之后计算两者：pos_seq-item和neg_seq-item 互信息更大
+pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增强。
+让序列特征emb学习的更好
+
+2.3 多模态&行为-wenqi
+目标：将item的多模态特征/语义特征融入到user2item的行为数据学习当中
+方案：1）由于前任设计的多模态item2item图模型不太理想，故尝试设计一个高效的item2item的图学习方式。初步的方案可以使用行为数据学习的图模型作为辅助，交叉融合更新行为>学习图模型和多模态图模型。
+      2）结合CV领域中自监督的方式，并结合图模型的特性，设计一个只用正样本学习的自监督学习方式，提高模型学习的效率
+      3) 探索行为图模型和多模态图模型的融合方式，提高最终的效果
+      4)相关文档：【腾讯文档】MMRec Insights https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2
+
+2.4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi/kexin/wenhao
+方案：使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。
+下周：和zhuoxi一起细化方案.
+
 
