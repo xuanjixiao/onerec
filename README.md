@@ -42,7 +42,7 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 
 
 # 4）OneRec V2
-最近准备正式开始 OneRec 2期项目迭代，主要可能集中在社交信息融合，搜索和推荐融合，多模态融合，跨业务夸场景融合这4个方向。大家可以看看有没有感兴趣的方向可以参与，或者跟我聊。
+2023 正式开始 OneRec 2期项目迭代，主要可能集中在社交信息融合，搜索和推荐融合，多模态融合，跨业务夸场景融合这4个方向。大家可以看看有没有感兴趣的方向可以参与，或者跟我聊。
 
 产出主要是论文和线上效果。
 
@@ -50,6 +50,6 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 
 整体节奏会比较慢，可能一个月对齐一次进度
 
-onerec一期2020-2021：https://github.com/xuanjixiao/onerec
+onerec一期主页2020-2021：https://github.com/xuanjixiao/onerec
 
-onerec二期2023-： https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/meetingnote.txt
+onerec二期主页2023-： https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/meetingnote.txt
