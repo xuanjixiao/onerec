@@ -3,7 +3,8 @@
 
 当前工作都是之前在线上验证过效果的工作，相关代码和论文已经开源在： https://github.com/xuanjixiao/onerec 。欢迎大家联系我们，加入微信群（联系方式：growj@126.com），加入团队进行开源共建。
 
-当前代码主要贡献者：[肖玄基](https://scholar.google.com/citations?user=DFsMY2IAAAAJ)([Xuanji Xiao, xuanji.xiao@gmail.com](https://scholar.google.com/citations?user=DFsMY2IAAAAJ))，和子钰(Ziyu He)，戴华强(Huaqiang Dai)，陈华斌(Huabin Chen)、[刘誉臻(Yuzhen Liu)](https://github.com/codestorm04)
+当前代码主要贡献者：[肖玄基](https://scholar.google.com/citations?user=DFsMY2IAAAAJ)([Xuanji Xiao, xuanji.xiao@gmail.com](https://scholar.google.com/citations?user=DFsMY2IAAAAJ))，和子钰(Ziyu He)，戴华强(Huaqiang Dai)，陈华斌(Huabin Chen)、[刘誉臻(Yuzhen Liu)](https://github.com/codestorm04)  @[WANGLIN](https://github.com/WANGLin0126),@[
+Warren_liu](https://github.com/anthony123),[Altriaex](https://github.com/Altriaex),[leonhx](https://github.com/leonhx),[codestorm04](https://github.com/codestorm04) 等等。
 
 # 1）多源信号融合
 
