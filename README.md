@@ -51,4 +51,5 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 整体节奏会比较慢，可能一个月对齐一次进度
 
 onerec一期2020-2021：https://github.com/xuanjixiao/onerec
+
 onerec二期2023-： https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/meetingnote.txt
