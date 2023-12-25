@@ -31,7 +31,7 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 相关论文：https://arxiv.org/pdf/2302.09971.pdf WISE2023
 
 3） OneRec3_SparseSharing 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。  
-2023效果最好的多任务算法STAN：https://arxiv.org/abs/2306.12232
+
 相关文章：[《OneRec3_LT4REC:基于彩票假设的多任务学习算法》](https://mp.weixin.qq.com/s/4PO6EK3b4VCKO0ibd76C9w)。  
 相关论文：https://arxiv.org/abs/2008.09872   ECIR2023
  【前序】2018CVR多任务工作：[Calibration4CVR：2018年关于“神经元级别共享的多任务CVR”的初探-2018](https://zhuanlan.zhihu.com/p/611453829)  
