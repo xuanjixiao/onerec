@@ -127,7 +127,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 # 7 meeting 20240227
 ## 1 社交&行为：
 * 本次进展：在 LastFM 数据集上的结果表现不佳，加入对比损失反而会降低推荐的性能，下一步需要从以下几个方面分析新加入的对比损失对社交推荐的作用
- 1）稀疏 social graph 可能才会起作用
+ **1）稀疏 social graph 可能才会起作用
  2）t-SNE 可视化user embedding
  3）用户分层
  4）@50
