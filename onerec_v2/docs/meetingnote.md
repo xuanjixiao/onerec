@@ -126,10 +126,9 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 
 # 7 meeting 20240227
 ## 1 社交&行为：
-### 本次更新：社交和图的建模方案确定。socialLGN + contrative learning.  overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
+### 本次更新：社交和图的建模方案确定。socialLGN + contrative learning. 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
 ### 下次进度：调研社交用在排序具体方案。—guanxin/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
-### 参考文档 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md),
-        2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+### 参考文档 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
 
 ## 2 搜索信号运用到推荐里面--qichao
 ### 方案: 搜索信号具体行为序列与推荐里面曝光未点击行为序列通过对比学习建模负向行为。
