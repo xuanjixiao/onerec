@@ -141,7 +141,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 * 本次：将item的多模态特征/语义特征融入到user2item的行为数据学习当中。
 * 下次：探索行为图模型和多模态图模型的融合方式，交错更新，单个epoch行为图学习多模态图学习对方信息，下个epoch反过来。
 * 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md) , [tencent doc](https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2)。
-* 方案简介：
+* 方案简介：GCN做推荐问题有两个：1）随机负采样，其实是不准确的。2）正样本很稀疏。解决办法：1）用正样本的自监督学习，通过只构建正样本对进行对比学习[借鉴CV及nlp中的方法]；2），使用样本的多模态特征，提升item的潜在表示。
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi/kexin/wenhao 
 * 本次：：和zhuoxi一起细化方案. recbole。 补一张图？
