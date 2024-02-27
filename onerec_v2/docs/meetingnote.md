@@ -124,7 +124,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 方案：使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。
 下周：和zhuoxi一起细化方案. recbole。 补一张图？
 
-#7 meeting 20230209
+# 7 meeting 20230209
 1） 社交&行为：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md),[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
 社交和图的建模方案确定。socialLGN + contrative learning.  overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
 下次会议：调研社交用在排序具体方案。—guanxin/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
