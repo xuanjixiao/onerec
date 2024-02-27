@@ -1,4 +1,4 @@
-1 meeting 202307--talking about the future directions and references
+# 1 meeting 202307--talking about the future directions and references
 
 1.1 社交&行为. social4rec v2--Fuse social network information and behaviors signal. -huaqiang/andy/wanglin
 1）主要方案：	
@@ -25,7 +25,7 @@
 1.4 multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。
 问题：1）比如直播优势类目是衣服，电商优势类目是食品。分布差别大，数据聚合起来知识比较多。2）不同域的序列信息加进来，兴趣不一定一致，比如商品域经常出现偏热门问题（淘宝直播使用其他域信息发现，商品域pvr很高偏热门）。--wenhao/bangzheng 
 
-2 meeting note-20230905.
+# 2 meeting note-20230905.
 2.1 社交&行为：
 1）下次会议：user-user关系置信度，然后修正原始的结果。dongqian说的置信度文章。-Andy
 2）下次会议：图关系提取，和 融合进入其他模型比如推荐模型—wanglin
@@ -46,7 +46,7 @@
 下次会议：具体方案确定，包括多个域的序列如何融合--wenhao
 
 
-3 meeting 20231010
+# 3 meeting 20231010
 1） 社交&行为：
 社交和图的建模方案确定。链接？下次会议：初步开发代码在公开数据集合尝试。—wanglin，
 下次会议：调研社交用在排序具体方案。—yuqiao/华强
@@ -66,7 +66,7 @@
 下周：和zhuoxi一起细化方案.
 
 
-#4 meeting 20231031
+# 4 meeting 20231031
 1） 社交&行为：
 社交和图的建模方案确定。链接？下次会议：初步开发代码在公开数据集合尝试。—wanglin，
 下次会议：调研社交用在排序具体方案。—yuqiao/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
@@ -89,7 +89,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 下周：和zhuoxi一起细化方案.
 
 
-#5 meeting 20231128
+# 5 meeting 20231128
 1） 社交&行为：
 社交和图的建模方案确定。socialLGN + contrative learning.  overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4  —wanglin
 下次会议：调研社交用在排序具体方案。—yuqiao/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
@@ -107,7 +107,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 下周：和zhuoxi一起细化方案. recbole。 补一张图？
 
 
-#6 meeting 20230109
+# 6 meeting 20230109
 1） 社交&行为：
 社交和图的建模方案确定。socialLGN + contrative learning.  overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
 下次会议：调研社交用在排序具体方案。—guanxin/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
