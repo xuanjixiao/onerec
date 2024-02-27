@@ -138,14 +138,16 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 * 方案简介“
 
 ## 3 多模态&行为-wenqi 
-### 方案：
-### 本次：将item的多模态特征/语义特征融入到user2item的行为数据学习当中。
-### 方案：探索行为图模型和多模态图模型的融合方式，交错更新，单个epoch行为图学习多模态图学习对方信息，下个epoch反过来。
-### 参考文档 [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md) , [tencent doc](https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2)
+* 本次：将item的多模态特征/语义特征融入到user2item的行为数据学习当中。
+* 下次：探索行为图模型和多模态图模型的融合方式，交错更新，单个epoch行为图学习多模态图学习对方信息，下个epoch反过来。
+* 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md) , [tencent doc](https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2)。
+* 方案：
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi/kexin/wenhao 
-### 方案：使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。
-### 下周：和zhuoxi一起细化方案. recbole。 补一张图？
-### 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
+* 本次：：和zhuoxi一起细化方案. recbole。 补一张图？
+* 下次：
+* 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
+* 方案：使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。
+
 
 
