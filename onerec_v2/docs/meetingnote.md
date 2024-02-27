@@ -127,11 +127,11 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 # 7 meeting 20240227
 ## 1 社交&行为：
 * 本次进展：在 LastFM 数据集上的结果表现不佳，加入对比损失反而会降低推荐的性能，下一步需要从以下几个方面分析新加入的对比损失对社交推荐的作用
- + 稀疏 social graph 可能才会起作用
- + t-SNE 可视化user embedding
- + 用户分层
- + @50
- + 换数据集
+ 1. 稀疏 social graph 可能才会起作用
+ 2. t-SNE 可视化user embedding
+ 3. 用户分层
+ 4. @50
+ 5.  换数据集
 * 下次预期：调研社交用在排序具体方案。—guanxin/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
 * 参考文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
 * 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
