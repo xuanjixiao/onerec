@@ -126,28 +126,28 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 
 # 7 meeting 20240227
 ## 1 社交&行为：
-* 本次进展：社交和图的建模方案确定。socialLGN + contrative learning. 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
+* 本次进展：正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
 * 下次预期：调研社交用在排序具体方案。—guanxin/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研
 * 参考文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
-* 方案简介：
+* 方案简介：社交和图的建模方案确定。socialLGN + contrative learning. 
   
 ## 2 搜索信号运用到推荐里面--qichao
 * 本次: 搜索信号具体行为序列与推荐里面曝光未点击行为序列通过对比学习建模负向行为。
 * 下次：1）补充方案 2）参考链接 3）结果。
 * 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md)
-* 方案简介“
+* 方案简介：搜索信号具体行为序列与推荐里面曝光未点击行为序列通过对比学习建模负向行为。
 
 ## 3 多模态&行为-wenqi 
 * 本次：将item的多模态特征/语义特征融入到user2item的行为数据学习当中。
 * 下次：探索行为图模型和多模态图模型的融合方式，交错更新，单个epoch行为图学习多模态图学习对方信息，下个epoch反过来。
 * 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md) , [tencent doc](https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2)。
-* 方案：
+* 方案简介：
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi/kexin/wenhao 
 * 本次：：和zhuoxi一起细化方案. recbole。 补一张图？
 * 下次：
 * 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
-* 方案：使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。
+* 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
 
 
 
