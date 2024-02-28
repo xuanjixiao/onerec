@@ -23,3 +23,7 @@
 4. 相关文档：【腾讯文档】MMRec Insights https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2
    
 方案：探索行为图模型和多模态图模型的融合方式，交错更新，单个epoch行为图学习多模态图学习对方信息，下个epoch反过来。相关文档：【腾讯文档】MMRec Insights https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2。
+
+
+# 参考文档
+* MMGCN首次使visual，text，acoustic三种模态特征在行为图上进行学习。GRCN适应性的去掉了有噪声的边。GMAT用了attetion处理了不同模态的重要性，DMTL使用解耦的representation和attention处理不同模态关系。
