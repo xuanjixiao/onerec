@@ -26,4 +26,8 @@
 
 
 # 参考文档
-* MMGCN首次使visual，text，acoustic三种模态特征在行为图上进行学习。GRCN适应性的去掉了有噪声的边。GMAT用了attetion处理了不同模态的重要性，DMTL使用解耦的representation和attention处理不同模态关系。
+* MMGCN首次使visual，text，acoustic三种模态特征在行为图上进行学习。
+* GRCN去掉了有噪声的行为边。
+* GMAT用了attetion处理了不同模态的重要性
+* DMTL使用解耦的representation和attention处理不同模态关系。
+* MGCL 使用了行为信息来提纯内容信息。用了对比学习来进行数据增强，同时保证每个模态的表达.使用了
