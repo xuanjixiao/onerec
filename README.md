@@ -1,4 +1,4 @@
-# onerec (一个专注在多源信息融合的推荐算法库)
+# OneRec：一个专注在多源信息融合的推荐算法库
 
 A recommendation algorithm library focused on multi-source information fusion
 
