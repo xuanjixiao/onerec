@@ -9,7 +9,7 @@ Under the paradigm of conventional recommendation system algorithm and system du
 
 在常规推荐系统算法和系统双优化的范式下，一线公司针对单个任务或单个业务的效果挖掘几乎达到极限。从2019年我们开始关注多种信息的萃取融合，提出了OneRec算法，希望通过平台或外部各种各样的信息来进行知识集成，打破数据孤岛，极大扩充推荐的“Extra World Knowledge”。 已实践的算法包括行为数据（多信号，长短期信号），内容描述，社交信息，知识图谱等。在OneRec，每种信息和整体算法的集成是可插拔的，这样的话一方面方便大家在自己的平台数据下灵活组合各种信息，另一方面方便开源共建，大家可以在上边集成自己的各种算法。今天分享的都是之前在线上验证过效果的工作，相关代码和论文已经开源在： https://github.com/xuanjixiao/onerec 。
 
-**2024年，OneRec 第二期仍在火热进行中，欢迎大家联系我们，加入微信群（联系方式：growj@126.com），加入团队进行开源共建。**
+**2024年，OneRec 第二期仍在火热进行中，包括四个方向：社交信息和行为信息融合，搜索和推荐融合，多模态融合，跨业务场景融合。欢迎大家联系我们，加入微信群（联系方式：growj@126.com），加入团队进行开源共建。**
 
 ![image](https://github.com/xuanjixiao/onerec/assets/15994016/eb7dafe4-b998-4aa1-8546-3b770e76cf11)
 
