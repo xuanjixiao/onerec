@@ -1,6 +1,6 @@
 # OneRec：一个专注在多源信息融合的推荐算法库
 
-A recommendation algorithm library focused on multi-source information fusion
+OneRec: A recommendation algorithm library focused on multi-source information fusion
 
 Under the paradigm of conventional recommendation system algorithm and system dual optimization, the effect mining of a single task or a single business by front-line companies has almost reached its limit. Since 2019, we have started to pay attention to the extraction and fusion of various information, and proposed the OneRec algorithm, hoping to integrate knowledge through platforms or various external information, break data silos, and greatly expand the recommended "Extra World Knowledge". Algorithms that have been practiced include behavioral data (multi-signal, long-term and short-term signals), content description, social information, knowledge graph, etc. In OneRec, the integration of each type of information and the overall algorithm is pluggable. In this way, on the one hand, it is convenient for everyone to flexibly combine various information under their own platform data, and on the other hand, it is convenient for open source co-construction. You can integrate your own on it. various algorithms. What I share today is the work that has been verified online before. The relevant codes and papers have been open sourced at: https://github.com/xuanjixiao/onerec. Welcome everyone to contact us, join the WeChat group (contact information: growj@126.com), and join the team for open source co-construction.
 
