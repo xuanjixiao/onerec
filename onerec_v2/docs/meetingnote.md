@@ -171,7 +171,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
 * 本次：和zhuoxi一起细化方案. recbole。 补一张图？
-* 下次：
+* 下次： @yuanfei强化
 * 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
 * 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
 
