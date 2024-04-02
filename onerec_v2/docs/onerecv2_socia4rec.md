@@ -1,6 +1,6 @@
 owner by DR Wanglin
 
-##1 设计概述
+## 1 设计概述
 社交和图的建模方案确定。socialLGN + contrative learning.  
 overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
 
@@ -31,7 +31,7 @@ References
 ‘![image](https://github.com/xuanjixiao/onerec/assets/15994016/c1aa76bd-b464-46ab-bd15-2523bfecd7af)
 
 
-##2 试验进展 (0402)
+## 2 试验进展 (0402)
 
 论文原文中LastFM的实验数据和加入对比损失之后的实验效果(对比损失系数 1e-7)
 
@@ -51,6 +51,6 @@ References
 * 4）@50
 * 5）换数据集
 
-##3 下一步需要做的事情：
+## 3 下一步需要做的事情：
   * 1）解决 SVD oom 的问题（并行，或者只对 social graph 进行 SVD 分解）
   * 2）找社交信息包含较多噪声的数据集进行实验
