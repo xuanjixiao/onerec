@@ -30,9 +30,9 @@ OneRec系列推荐算法致力于开辟一个新的技术方向--关注多种信
 相关文章：《OneRec2_Social4Rec：社交兴趣增强的推荐算法》，待放出中文链接。   
 相关论文：https://arxiv.org/pdf/2302.09971.pdf
 
-3） OneRec3_SparseSharing 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。  
-相关文章：[《OneRec3_LT4REC:基于彩票假设的多任务学习算法》](https://mp.weixin.qq.com/s/4PO6EK3b4VCKO0ibd76C9w)， ECIR 2024 best industry paper honorable Mention(亚军) 
-相关论文：https://arxiv.org/abs/2008.09872  
+3） OneRec3_multibehavior learning(行为之间的多任务学习） 如何更好的利用点击信号和转化信号。通过彩票理论实现神经元级别的多任务学习，进一步优化cvr的效果。  
+相关文章：[《OneRec3_LT4REC:基于彩票假设的多任务学习算法》](https://mp.weixin.qq.com/s/4PO6EK3b4VCKO0ibd76C9w)，
+相关论文：Lottery4CVR: Neuron-Connection Level Sharing for Multi-task Learning in Video Conversion Rate Prediction, https://arxiv.org/abs/2008.09872 , ECIR 2024 best industry paper honorable Mention(亚军) 
 【后续】2023CVR多任务工作：[Click-aware Structure Transfer with Sample Weight Assignment for Post-Click Conversion Rate Estimation](https://arxiv.org/abs/2304.01169), ECML-pkdd 2023.  
 【前序】2018CVR多任务工作：[Calibration4CVR：2018年关于“神经元级别共享的多任务CVR”的初探-2018](https://zhuanlan.zhihu.com/p/611453829)
 
