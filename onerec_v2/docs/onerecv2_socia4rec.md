@@ -31,7 +31,24 @@ References
 ‘![image](https://github.com/xuanjixiao/onerec/assets/15994016/c1aa76bd-b464-46ab-bd15-2523bfecd7af)
 
 
-2 试验进展
+2 试验进展 (0402)
 
+论文原文中LastFM的实验数据和加入对比损失之后的实验效果(对比损失系数 1e-7)
+| Dataset | Metric | SocialLGN |SocialLGN-CL｜
+| -------- | -------- | -------- |-----------｜
+| LastFM     | Precision@10     | **0.1972**     | 0.1968｜
+| -     | Precision@20     | 0.1368     |**0.1375**｜
+| -     | Recall@10     | **0.2026**     |0.2017｜
+| -     | Recall@20     | 0.2794     |**0.2805**｜
+| -     | NDCG@10     | **0.2566**     |0.2557｜
+| -     | NDCG@10     | **0.2883**     |0.2822｜
 
-
+目前的实验结果显示 SocialGraph 对比损失的加入对结果影像很小，只有在对比损失占比较小的时候会表现出较好的性能，考虑可以改进的方向有以下几个方面：
+* 1）稀疏social graph 可能才会起作用
+* 2）t-SNE 可视化user embedding
+* 3）用户分层
+* 4）@50
+* 5）换数据集
+3 下一步需要做的事情：
+  * 1）解决 SVD oom 的问题（并行，或者只对 social graph 进行 SVD 分解）
+  * 2）找社交信息包含较多噪声的数据集进行实验
