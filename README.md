@@ -1,5 +1,6 @@
 # 成员招募
 发两个项目招募：
+
 1 大家好，开源项目onerec project成员招募中！！！ Onerec一期中的一个lottery4CVR获得了ECIR24的工业界最佳论文提名，https://github.com/xuanjixiao/onerec/tree/onerecv2 。目前二期工作在开展当中，主要是行为，社交，多模态，搜索等信号的融合信息检索算法。请有兴趣加入的朋友跟我联系，微信babekiller 或者 邮箱growj@126.com.
 
 2 另外，再发一个成员招募！大家好，amazon的那个多语言多模态比赛开始了，我们去年拿了10几名，希望今年能拿前三名。有兴趣加入的朋友请联系，尤其是时间比较充裕的朋友或者在校生。请联系微信babekiller 或者 邮箱growj@126.com.
