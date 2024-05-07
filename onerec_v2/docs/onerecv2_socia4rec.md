@@ -45,11 +45,12 @@ References
 | -     | NDCG@10     | **0.2883**     |0.2822
 
 目前的实验结果显示 SocialGraph 对比损失的加入对结果影像很小，只有在对比损失占比较小的时候会表现出较好的性能，考虑可以改进的方向有以下几个方面：
-* 1）稀疏social graph 可能才会起作用
+* 1）稠密social graph&稀疏行为数据 可能才会起作用
 * 2）t-SNE 可视化user embedding
 * 3）用户分层
 * 4）@50
 * 5）换数据集
+* 6）social graph去噪声
 
 ## 3 下一步需要做的事情：
   * 1）解决 SVD oom 的问题（并行，或者只对 social graph 进行 SVD 分解）
