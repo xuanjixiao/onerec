@@ -176,3 +176,29 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 * 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
 
 
+# 7 meeting 20240507
+## 1 社交&行为：
+* 本次进展：在 LastFM 数据集上的结果表现不佳，加入对比损失反而会降低推荐的性能，下一步需要从以下几个方面分析新加入的对比损失对社交推荐的作用: 1) 稀疏 social graph 可能才会起作用; 2) t-SNE 可视化user embedding; 3) 用户分层; 4) @50; 5) 换数据集. 
+* 下次预期：1）调研社交用在排序具体方案。—guanxin/华强。 用行为信息预测社交信息，用社交信息预测行为信息，最后融合。调研。 2）wanglin：@svd分解oom'问题
+* 参考文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+* 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
+  
+## 2 搜索信号运用到推荐里面--qichao
+* 本次: 
+* 下次：1）补充方案 2）参考链接 3）结果。
+* 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md)
+* 方案简介：搜索信号具体行为序列（正信号），与推荐里面曝光未点击行为序列（负信号）通过对比学习建模负向行为。
+
+## 3 多模态&行为-wenqi 
+* 本次：将item的多模态特征/语义特征融入到user2item的行为数据学习当中。
+* 下次：1）探索行为图模型和多模态图模型的融合方式，交错更新，单个epoch行为图学习多模态图学习对方信息，下个epoch反过来。2）人力问题
+* 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md) , [tencent doc](https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2)。
+* 方案简介：GCN做推荐问题有两个：1）随机负采样，其实是不准确的。2）正样本很稀疏。解决办法：1）用正样本的自监督学习DINO（不同的跳与跳相似。可以作为自监督的信号），通过只构建正样本对进行对比学习[借鉴CV及nlp中的方法；2）使用样本的多模态特征，提升item的潜在表示-FREEDOM i2i。
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+* 本次：和zhuoxi一起细化方案. recbole。 补一张图？
+* 下次： @yuanfei强化人力问题
+* 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
+* 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
+
+
