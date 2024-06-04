@@ -216,9 +216,16 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 * 方案简介：搜索信号具体行为序列（正信号），与推荐里面曝光未点击行为序列（负信号）通过对比学习建模负向行为。
 
 ## 3 多模态&行为-wenqi 
-* 本次：实现交错更新 @wenqi @chuchun @xinyu
-* 下次： 
-* 方案简介：GCN做推荐问题有两个：1）随机负采样，其实是不准确的。2）正样本很稀疏。解决办法：1）用正样本的自监督学习DINO（不同的跳与跳相似。可以作为自监督的信号），通过只构建正样本对进行对比学习[借鉴CV及nlp中的方法；2）使用样本的多模态特征，提升item的潜在表示-FREEDOM i2i。
+* 本次： @wenqi @chuchun @xinyu
+* 下次： 实现DRAGON和LayerGCN的结合
+* 方案简介：
+目前依然是考虑将item多模态信息融合进user-item的交互信息当中
+考虑基于MMGCN和LayerGCN的idea
+和以下论文中的模型进行结合:
+MMSSL: Multi-Modal self-supervised Learning for Recommendation
+DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recommendation
+初步计划在DRAGON的模型上面去改，然后加入LayerGcN
+数据暂时定为Amazon的Baby数据集，上面的两个模型相当于Baseline。
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
 * 本次：着手实现RL代码 @pengfei @wenhao
