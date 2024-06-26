@@ -210,7 +210,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 * 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
   
 ## 2 搜索信号运用到推荐里面--qichao
-* 本次: qichao更新方案，祥源更新下自己思考到 doc上。@qichao @xingyuan
+* 本次: qichao更新方案，祥源更新下自己思考到 doc上。@qichao @xiangyuan
 * 下次：
 * 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md)
 * 方案简介：搜索信号具体行为序列（正信号），与推荐里面曝光未点击行为序列（负信号）通过对比学习建模负向行为。
