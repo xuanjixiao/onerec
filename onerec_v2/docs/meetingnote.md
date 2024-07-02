@@ -252,7 +252,9 @@ lastfm数据集：
 | NDCG@20      | 27.46%                | **27.55%** | **27.54%**  | **27.51%**  | 27.43%     |
 | Precision@20 | 13.38%                | **13.45%** | **13.45%**  | **13.43%**  | 13.39%     |
 
-* 下次预期：
+验证了socialnetwork图通过对比学习进行数据增强的有效性。
+
+* 下次预期：寻找稀疏行为用户占比高的数据集，再次验证 @wanglin @wangweisong
 * 参考文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
 * 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
   
