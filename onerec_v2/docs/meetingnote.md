@@ -233,8 +233,32 @@ DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recomm
 
 # 8 meeting 20240702
 ## 1 社交&行为：
-* 本次进展：1）更换行为信号稀疏且社交信号稠密的数据集合，观察在recall@10 recall@20，recall@50 recall@100的表现。关于graph去噪声的参考资料：TransN: Heterogeneous Network Representation Learning by Translating Node Embeddings @wanglin 
-* 下次预期：引入对比学习时，尝试不同的社交信号清洗方式，观察稀疏行为用户推荐效果的提升（多试几个不同的数据集）@wanglin @wangweisong
+* 本次进展：引入对比学习时，尝试不同的社交信号清洗方式，观察稀疏行为用户推荐效果的提升（多试几个不同的数据集）@wanglin @wangweisong
+
+lastfm数据集：
+
+| 分位点 | 训练集交互次数 |
+| ------ | -------------- |
+| 0      | 1              |
+| 0.01   | 7.91           |
+| 0.02   | 22.82          |
+| 0.03   | 31             |
+| 0.05   | 34             |
+| 0.1    | 36             |
+| 1      | 48             |
+
+根据训练集中用户交互次数去筛选加入对比学习的用户，效果如下：
+
+| Metric       | baseline（SocialLGN） | <8（0.01） | <23（0.02） | <31（0.03） | <36（0.1） |
+| ------------ | --------------------- | ---------- | ----------- | ----------- | ---------- |
+| Recall@10    | 19.72%                | 19.70%     | 19.71%      | 19.70%      | 19.57%     |
+| NDCG@10      | 24.91%                | **24.93%** | 24.92%      | 24.91%      | 24.79%     |
+| Precision@10 | 19.20%                | 19.18%     | 19.18%      | 19.17%      | 19.13%     |
+| Recall@20    | 27.29%                | **27.41%** | **27.42%**  | **27.39%**  | **27.33%** |
+| NDCG@20      | 27.46%                | **27.55%** | **27.54%**  | **27.51%**  | 27.43%     |
+| Precision@20 | 13.38%                | **13.45%** | **13.45%**  | **13.43%**  | 13.39%     |
+
+* 下次预期：
 * 参考文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
 * 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
   
