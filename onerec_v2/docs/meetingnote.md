@@ -202,7 +202,7 @@ pos_seq-item 和 neg_seq-item 提取就相当于对比学习里面的信息增�
 
 
 
-# 8 meeting 20240604
+# 9 meeting 20240604
 ## 1 社交&行为：
 * 本次进展：1）更换行为信号稀疏且社交信号稠密的数据集合，观察在recall@10 recall@20，recall@50 recall@100的表现。关于graph去噪声的参考资料：TransN: Heterogeneous Network Representation Learning by Translating Node Embeddings @wanglin 
 * 下次预期：引入对比学习时，尝试不同的社交信号清洗方式，观察稀疏行为用户推荐效果的提升（多试几个不同的数据集）@wanglin @wangweisong
