@@ -229,6 +229,37 @@ DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recomm
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
 * 本次：着手实现RL代码 @wenhao @pengfei  @liuweida
+* 
+
+# 8 meeting 20240702
+## 1 社交&行为：
+* 本次进展：1）更换行为信号稀疏且社交信号稠密的数据集合，观察在recall@10 recall@20，recall@50 recall@100的表现。关于graph去噪声的参考资料：TransN: Heterogeneous Network Representation Learning by Translating Node Embeddings @wanglin 
+* 下次预期：引入对比学习时，尝试不同的社交信号清洗方式，观察稀疏行为用户推荐效果的提升（多试几个不同的数据集）@wanglin @wangweisong
+* 参考文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+* 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
+  
+## 2 搜索信号运用到推荐里面--qichao
+* 本次: qichao更新方案，祥源更新下自己思考到 doc上。@qichao @xiangyuan，目前xiangyuan有初步的方案是把推荐和搜索的信息，进行对齐，然后在baidu进行实验
+* 下次：
+* 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md)
+* 方案简介：搜索信号具体行为序列（正信号），与推荐里面曝光未点击行为序列（负信号）通过对比学习建模负向行为。
+
+## 3 多模态&行为-wenqi 
+* 本次： @wenqi @chuchun @xinyu
+* 下次： 实现DRAGON和LayerGCN的结合
+* 方案简介：
+目前依然是考虑将item多模态信息融合进user-item的交互信息当中
+考虑基于MMGCN和LayerGCN的idea
+和以下论文中的模型进行结合:
+MMSSL: Multi-Modal self-supervised Learning for Recommendation
+DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recommendation
+初步计划在DRAGON的模型上面去改，然后加入LayerGcN
+数据暂时定为Amazon的Baby数据集，上面的两个模型相当于Baseline。
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+* 本次：着手实现RL代码 @wenhao @pengfei  @liuweida
+* 下次： 
+* 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2
 * 下次： 
 * 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
 * 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
