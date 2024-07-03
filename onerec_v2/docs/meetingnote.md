@@ -285,8 +285,6 @@ DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recomm
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
 * 本次：着手实现RL代码 @wenhao @pengfei  @liuweida
-* 下次： 超空间方案，写论文@郑文豪 ，强化方案, 玄基跟@刘伟达 讲解之前的推荐算法+强化学习的方案。
-* 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2
-* 下次： 
+* 下次： 超空间方案，写论文@郑文豪 ，强化方案, 玄基跟@刘伟达 讲解之前的推荐算法+强化学习的方案。 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
 * 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
 * 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
