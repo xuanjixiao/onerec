@@ -260,7 +260,7 @@ lastfm数据集：
   
 ## 2 搜索信号运用到推荐里面--qichao
 * 本次: qichao更新方案，祥源更新下自己思考到 doc上。@qichao @xiangyuan，目前xiangyuan有初步的方案是把推荐和搜索的信息，进行对齐，然后在baidu进行实验
-* 下次：
+* 下次： 细化下设计方案 @刘祥源  @冯智键 @宋瑞雪 
 * 参考文档： [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md)
 * 方案简介：搜索信号具体行为序列（正信号），与推荐里面曝光未点击行为序列（负信号）通过对比学习建模负向行为。
 * 方案 @xiangyuan：
@@ -273,7 +273,7 @@ lastfm数据集：
 
 ## 3 多模态&行为-wenqi 
 * 本次： @wenqi @chuchun @xinyu
-* 下次： 实现DRAGON和LayerGCN的结合
+* 下次： @艾长青-腾讯-搜推 和 @刘文奇+shopee 了解下之前的方案。
 * 方案简介：
 目前依然是考虑将item多模态信息融合进user-item的交互信息当中
 考虑基于MMGCN和LayerGCN的idea
@@ -285,7 +285,7 @@ DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recomm
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
 * 本次：着手实现RL代码 @wenhao @pengfei  @liuweida
-* 下次： 
+* 下次： 超空间方案，写论文@郑文豪 ，强化方案, 玄基跟@刘伟达 讲解之前的推荐算法+强化学习的方案。
 * 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2
 * 下次： 
 * 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
