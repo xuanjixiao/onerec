@@ -288,3 +288,107 @@ DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recomm
 * 下次： 超空间方案，写论文@郑文豪 ，强化方案, 玄基跟@刘伟达 讲解之前的推荐算法+强化学习的方案。 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
 * 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
 * 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
+
+
+
+# 8 meeting 20240806
+
+## 1 社交&行为：
+
+- 本次进展：引入对比学习时，尝试不同的社交信号清洗方式，观察稀疏行为用户推荐效果的提升（多试几个不同的数据集）@wanglin @wangweisong
+
+lastfm数据集：
+
+| 分位点   | 0    | 0.01 | 0.02  | 0.03 | 0.05 | 0.1  | 1    |
+| -------- | ---- | ---- | ----- | ---- | ---- | ---- | ---- |
+| 交互次数 | 1    | 7.91 | 22.82 | 31   | 34   | 36   | 48   |
+
+根据训练集中用户交互次数去筛选加入对比学习的用户，效果如下：
+
+| Metric       | baseline（SocialLGN） | <8（0.01） | <23（0.02） | <31（0.03） | <36（0.1） |
+| ------------ | --------------------- | ---------- | ----------- | ----------- | ---------- |
+| Recall@10    | 19.72%                | 19.70%     | 19.71%      | 19.70%      | 19.57%     |
+| NDCG@10      | 24.91%                | **24.93%** | 24.92%      | 24.91%      | 24.79%     |
+| Precision@10 | 19.20%                | 19.18%     | 19.18%      | 19.17%      | 19.13%     |
+| Recall@20    | 27.29%                | **27.41%** | **27.42%**  | **27.39%**  | **27.33%** |
+| NDCG@20      | 27.46%                | **27.55%** | **27.54%**  | **27.51%**  | 27.43%     |
+| Precision@20 | 13.38%                | **13.45%** | **13.45%**  | **13.43%**  | 13.39%     |
+
+验证了socialnetwork图通过对比学习进行数据增强的有效性。
+
+- 下次预期：寻找稀疏行为用户占比高的数据集，再次验证 @wanglin @wangweisong
+- 参考文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+- 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
+
+## 2 搜索信号运用到推荐里面
+
+#### 方案一 @xiangyuan：
+
+- 通过构建S2S、R2R、S2R、R2S四个序列，分别提升搜索和推荐效果，其中R2S和S2R为序列状态转换模块
+- 考虑到用户从推荐状态转换到搜索状态通常是由相关推荐引起用户兴趣从而进行搜索，因此在由推荐状态转换到搜索状态时，通过related-select模块对前序推荐序列进行筛选
+- 考虑到用户在推荐状态下偏好的物品通常与近期搜索的项目相关，因此在由搜索状态转到推荐状态时，通过设置近邻时间阈值进行过筛
+
+![image](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/img/model1.png)
+
+#### 方案二 @ruixue：
+
+对该问题的思考：因该问题想及时捕捉到用户搜索行为的信号到推荐算法中，因此可将近期的搜索行为看作成一个trigger，结合当前请求和搜索行为的时间差diff/或s2r后的请求页数，通常，随着diff的增加，该搜索兴趣的强度会逐渐下降。同时，1）对于搜索结果已满足的临时兴趣，没有在后续推荐中继续交互的兴趣，推荐序列中没有对该兴趣进一步加强，随diff增加，也逐渐减弱该兴趣。2）对于搜索结果未完全满足的非短期临时兴趣，在推荐序列中，如产生交互，推荐序列自然会包含该兴趣。
+
+- query和item对齐，对比学习loss,但负采样扩大范围，不用batch内。
+
+- 生成两个概率，分别对应偏向搜索兴趣P_s和target_item兴趣偏好分P_t。input：user侧特征，最近的搜索行为时间diff,最近的搜索行为相关item的mean_pooling，与历史行为序列中同类目item的mean_pooling，softmax产出分数。
+
+-  P_s和P_t分别乘对应的最终搜索兴趣表征vs和推荐兴趣表征vr。生成最终兴趣表示emb.
+
+  关于vs和vr的方案
+
+  1）参照UniSAR方式，位置编码改时间差diff。
+
+  2）历史行为序列，两层attention，self-attention后分别用target_item 和 最近搜索行为 做target_atten。
+
+- 对target_item和最近的搜索行为做交叉。
+
+**疑问**：关于最近的搜索行为表示，是否加query_emb，UniSAR在对比loss的sim（a,b）函数用的tanh(aWb^T)方式,query和item的emb可能需要空间转换。但是行为序列中搜索行为用了E_query+Mean(E_i)表示//query_emb+query下点击item mean_pooling.
+
+推荐行为只有E_item，这种方式是否会导致行为序列上，搜索和推荐的表示不一致问题。query和item的emb如果存在空间转换，这样加是否会引入噪声？
+
+#### 公开数据集分析 @zhijian
+
+- 目前数据集: 快手KuaiSAR，美团MT-Small，Amazon（Kindle）
+- 美团和亚马逊数据集在item侧特征非常少，找不到推荐 & 搜索序列的共现信息
+- 快手KuaiSAR
+  - 用户维度做聚合，当前搜索序列 前的推荐序列，时间阈值为1/3/14天的有相同一级类目用户数为26%，40%，60%，
+
+​                 ○ 用户维度做聚合，当前搜索序列 前的推荐序列，时间阈值为1/3/14天的有相同二级类目用户数为24%，35%，52%
+
+​                 ○ 用户维度做聚合，当前推荐序列 前的搜索序列，时间阈值为1/3/14天的有相同一级类目用户数为24%，32%，37%
+
+​                 ○ 用户维度做聚合，当前推荐序列 前的搜索序列，时间阈值为1/3/14天的有相同二级类目用户数为20%，30%，35%
+
+​                 ○ 推荐数据集点击率50%，搜索数据集点击率11%（搜索下的视频会自动播放，所以点击率会偏低）
+
+#### 参考资料：
+
+- [UniSAR: Modeling User Transition Behaviors between Search and Recommendation](https://arxiv.org/abs/2404.09520)
+- [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
+- [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)
+
+## 3 多模态&行为-wenqi 
+
+- 本次： @wenqi @chuchun @xinyu
+- 下次： @艾长青-腾讯-搜推 和 @刘文奇+shopee 了解下之前的方案。
+- 方案简介：
+  目前依然是考虑将item多模态信息融合进user-item的交互信息当中
+  考虑基于MMGCN和LayerGCN的idea
+  和以下论文中的模型进行结合:
+  MMSSL: Multi-Modal self-supervised Learning for Recommendation
+  DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recommendation
+  初步计划在DRAGON的模型上面去改，然后加入LayerGcN
+  数据暂时定为Amazon的Baby数据集，上面的两个模型相当于Baseline。
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+
+- 本次：着手实现RL代码 @wenhao @pengfei  @liuweida
+- 下次： 超空间方案，写论文@郑文豪 ，强化方案, 玄基跟@刘伟达 讲解之前的推荐算法+强化学习的方案。 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
