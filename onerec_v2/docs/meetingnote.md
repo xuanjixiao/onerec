@@ -296,6 +296,7 @@ DRAGON: Enhancing Dyadic Relations with Homogeneous Graphs for multimodal Recomm
 ## 1 社交&行为：
 
 - 本次进展：寻找稀疏行为用户占比高的数据集，再次验证 @wanglin @wangweisong
+- 下次预期：进行两个数据集合完整实验，之后开始准备论文大纲
 
 ciao数据集：
 
@@ -325,6 +326,8 @@ ciao数据集：
 - 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
 
 ## 2 搜索信号运用到推荐里面
+
+- 下次预期：后续单独开会进行讨论，确定方案。ruixue方案给出一个示意图。
 
 #### 方案一 @xiangyuan：
 
@@ -380,7 +383,7 @@ ciao数据集：
 ## 3 多模态&行为-wenqi 
 
 - 本次： @wenqi @chuchun @xinyu
-- 下次： @艾长青-腾讯-搜推 和 @刘文奇+shopee 了解下之前的方案。
+- 下次： 再调研增加两个创新点。
 - 方案简介：
   目前依然是考虑将item多模态信息融合进user-item的交互信息当中
   考虑基于MMGCN和LayerGCN的idea
@@ -393,6 +396,7 @@ ciao数据集：
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
 
 - 本次：着手实现RL代码 @wenhao @pengfei  @liuweida
-- 下次： 超空间方案，写论文@郑文豪 ，强化方案, 玄基跟@刘伟达 讲解之前的推荐算法+强化学习的方案。 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 下次： 1）超空间方案，确定论文写作时间。如果zhuoxi没时间，文豪和玄基可以先进行写作。可以先完成大纲挂在arxiv上，逐步修改。2）伟达跟文豪沟通下节奏，算法方案比较简单易于实现，看具体困难。
+- 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
 - 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
 - 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
