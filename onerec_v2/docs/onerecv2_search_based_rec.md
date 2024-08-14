@@ -5,8 +5,24 @@
   2. 从用户搜索序列和feed消费序列中根据序列相似性筛选相似用户，引入相似用户历史序列增强目标用户表示，拓展用户兴趣
 
 
-# 参考资料：
+# related work：
 
 - [UniSAR: Modeling User Transition Behaviors between Search and Recommendation](https://arxiv.org/abs/2404.09520)
 - [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
 
+- UniSAR：Joint Search and Recommendation. In recent years, there hasbeen a trend toward integrating S&R. These works primarily fall
+into two categories: (a) Search enhanced recommendation [14, 25,
+27, 30, 36]. This type of work utilizes search data as supplementary information to enhance the recommendation performance.
+IV4Rec [25, 26] utilizes causal learning, treating user-searched
+queries as instrumental variables to reconstruct user and item
+embeddings. Query-SeqRec [14] is a query-aware model which
+incorporates user queries to model users’ intent. SESRec [27] uses
+contrastive learning to disentangle similar and dissimilar interests
+between user S&R behaviors. (b) Unified S&R [11, 38, 40, 41, 43].
+This kind of work performs joint learning of S&R to enhance the
+model performance in both scenarios. JSR [41, 42] simultaneously
+trains two models for S&R using a joint loss function. USER [40]
+integrates user S&R behaviors and feeds them into a transformer
+encoder. UnifiedSSR [38] proposes a dual-branch network to encode
+the product history and query history in parallel. In this paper, we
+develop a framework that 
