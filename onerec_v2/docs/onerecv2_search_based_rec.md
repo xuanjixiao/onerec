@@ -9,8 +9,7 @@
 
 - [UniSAR: Modeling User Transition Behaviors between Search and Recommendation](https://arxiv.org/abs/2404.09520)
 - [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
-
-- UniSAR：Joint Search and Recommendation. In recent years, there hasbeen a trend toward integrating S&R. These works primarily fall
+-  Joint Search and Recommendation. In recent years, there hasbeen a trend toward integrating S&R. These works primarily fall
 into two categories: (a) Search enhanced recommendation [14, 25,
 27, 30, 36]. This type of work utilizes search data as supplementary information to enhance the recommendation performance.
 IV4Rec [25, 26] utilizes causal learning, treating user-searched
@@ -25,4 +24,10 @@ trains two models for S&R using a joint loss function. USER [40]
 integrates user S&R behaviors and feeds them into a transformer
 encoder. UnifiedSSR [38] proposes a dual-branch network to encode
 the product history and query history in parallel. In this paper, we
-develop a framework that 
+develop a framework that
+
+# UniSAR
+
+
+
+
