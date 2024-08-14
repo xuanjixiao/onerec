@@ -35,5 +35,7 @@ develop a framework that
 4）其他：为了对齐query和item，对query和item进行对比学习。
 ![image](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/img/IMG_6874.jpeg)
 
+使用KuaiSAR真实数据集合和AMAZON合成数据集合，在推荐和搜索上的hitrate 和 ndcg上有显著提升，其中推荐的提升更大。
+
 
 
