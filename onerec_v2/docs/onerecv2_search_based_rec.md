@@ -27,7 +27,13 @@ the product history and query history in parallel. In this paper, we
 develop a framework that
 
 # UniSAR
-
+主要是建模s2s,r2r,s2r,r2s四个序列，促进搜索和任务效果都提升。
+方法：
+1）整体上使用extract, alignment, fusion三个极端。
+2）使用attention构建这四个序列表征，其中s2r和r2s注意只提取不相同的行为作为attention计算（即搜索和推荐相间的两个行为），技巧使用multihead self attention和mask掉相同场景（都是搜索或者推荐））的行为；
+3）s2r和r2r构建产生推荐表征Vr，r2s和s2s产生搜索表征Vs。技巧使用对比学习使得s2r和r2r相似，r2s和s2s相似;cross attention进行两者信息融合。
+4）其他：为了对齐query和item，对query和item进行对比学习。
 ![image](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/img/IMG_6874.jpeg)
+
 
 
