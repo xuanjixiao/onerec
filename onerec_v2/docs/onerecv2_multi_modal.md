@@ -26,6 +26,8 @@
 
 方案：探索行为图模型和多模态图模型的融合方式，交错更新，单个epoch行为图学习多模态图学习对方信息，下个epoch反过来。相关文档：【腾讯文档】MMRec Insights https://docs.qq.com/doc/DSnR2c0lVTHBjbWx2。
 
+# 问题
+但是多模态推荐，通过点击item生成user embedding 的话，很容易生成四不像。比如看了乒乓球，女性，草坪上的狗，最后pooling得到的user的结果，最近的item embedding是一个狗或者猫。 @艾长青-腾讯-搜推 这个问题在多模态推荐中需要解决。否则得到用户embedding 表征的时候是没有效果的。
 
 # 参考文档
 * MMGCN首次使visual，text，acoustic三种模态特征在行为图上进行学习。
