@@ -4,7 +4,8 @@ owner by DR Wanglin
 社交和图的建模方案确定。socialLGN + contrative learning.  
 1)当前社交方式中，相似朋友会有相似兴趣，但是单向关注的大v关系不能说有相似兴趣。其次，存在行为或者社交关系很稀疏的情况。方法是建立一个新的社交关系图。先通过svd提取user-item的embedding，这样可以提取重要信息且减少噪音。然后使用user embedding相似度建立新的图，基于行为的关系图和原来的社交关系图的对比学习，可以当作用户的数据增强。
 如下图所示，社交关系是一个图，然后user-item是一个图，然后通过user-item提取得到的user是一个user图。loss除了user-item之外，还有一个就是social graph得到的user embedding和行为得到的user embedding进行contrastive learnin
-2）contribution够吗？如何处理social node with few social connections？
+2）contribution够吗？
+ 如何处理social node with few social connections？Let the Information Fly: Reconstructing SocialNetwork After a Node Deleted 或者 diffusion model
 
 overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
 
