@@ -64,3 +64,7 @@ References
 ## 3 下一步需要做的事情：
   * 1）解决 SVD oom 的问题（并行，或者只对 social graph 进行 SVD 分解）
   * 2）找社交信息包含较多噪声的数据集进行实验
+
+其他：比较漂亮的图：
+<img width="280" alt="image" src="https://github.com/user-attachments/assets/6cbe77d1-29a3-4ec0-875d-7d9730b255c0">
+
