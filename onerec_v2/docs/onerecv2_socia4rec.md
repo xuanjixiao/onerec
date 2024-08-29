@@ -37,6 +37,8 @@ References
 1
 ‘![image](https://github.com/xuanjixiao/onerec/assets/15994016/c1aa76bd-b464-46ab-bd15-2523bfecd7af)
 
+新方案？
+
 
 ## 2 试验进展 (0402)
 
