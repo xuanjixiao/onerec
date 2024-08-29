@@ -6,7 +6,8 @@ owner by DR Wanglin
 如下图所示，社交关系是一个图，然后user-item是一个图，然后通过user-item提取得到的user是一个user图。loss除了user-item之外，还有一个就是social graph得到的user embedding和行为得到的user embedding进行contrastive learnin
 
 2）contribution够吗？  
- 如何处理social node with few social connections？Let the Information Fly: Reconstructing SocialNetwork After a Node Deleted 或者 diffusion model
+ a)如何处理social node with few social connections？ diffusion model
+ b) 另外，没有使用user-user-item这样的信息，第一个链接是社交关系，第二个链接是行为关系，这个信息应该能更好的捕捉到朋友的商品兴趣。可以增加一个view，之前是3个view，社交的user-user，行为的user-user和user-item，现在增加一个社交的user-item。
 
 overleaf 文档链接 https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4 正在调试代码，下一步需要观察 social 的对比学习信息对推荐性能的影响到底有多大  —wanglin
 
