@@ -35,3 +35,6 @@
 * GMAT用了attetion处理了不同模态的重要性
 * DMTL使用解耦的representation和attention处理不同模态关系。
 * MGCL 使用了行为信息来提纯内容信息。用了对比学习来进行数据增强，同时保证每个模态的表达.使用了
+* (DA-MRS， Improving Multi-modal Recommender Systems by Denoising and Aligning Multi-modal Content and User Feedback--厦门大学，腾讯 2024 kdd，问题：1）多模态表示存在噪音，比如文字中有噪声。解决方法是使用多模态内部构图行为图来去掉噪声 2）用户反馈行为中有噪声。使用带有多模态信息相关性权重的bpr loss来修正。 3）用户反馈item表示和多模态item表示没有对齐。方法是：用户在多模态上对物品偏好分布，要和用户在行为上偏好分布相似，使用kl散度衡量。同时要求在多个模态上相似要大于一个模态上相似。
+* 
+
