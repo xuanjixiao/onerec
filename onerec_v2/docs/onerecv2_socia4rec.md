@@ -40,8 +40,7 @@ References
 3 新方案
 1）我们之所以用社交信息，是认为社交关系紧密的用户，他们的物品偏好一样。那么为什么不直接试试朋友们喜欢的物品，作为我自己可能的兴趣描述呢（当然具体的单个物品可能是噪声）。我是担心我们没有直接学到这样一种二度信息传递:user通过社交关系找到了好友user，好友user通过行为关联到点击过的item。这样user就关联上了好友点击过的item。2）形式上，比较完备，四种对称的view。 3）问题是，user--user--item中，第二步user-item传递可能会有噪声或者不准确：朋友是随意点击的，或者我朋友喜欢的东西我不一定喜欢。解决方法是：1）随意点击：找到第二步user-item强关联，比如只用buy或者subscirbe信号，或者不使用点击使用点击率的预估分作为user-item的关联强度 2）我和朋友不一致：只有第一步user-user关系特别好的，才关联第二步。
 
-![image](https://github.com/user-attachments/assets/29017c52-4d7e-4f57-8ded-480260236352)
-
+![image](https://github.com/user-attachments/assets/97d7936f-28ea-42f7-a41a-a8941b6345e9)
 
 ## 2 试验进展 (0402)
 
