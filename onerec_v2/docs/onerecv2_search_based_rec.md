@@ -9,7 +9,7 @@
 
 - [UniSAR: Modeling User Transition Behaviors between Search and Recommendation](https://arxiv.org/abs/2404.09520)
 - [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
-- [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)--UDITSR
+- [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)--UDITSR，对于推荐的每一次交互生成虚拟的query，然后再搜推场景上对于user-query-item这样的三元图，进行类似transE一样的训练。美团，理论完备，实验对比不充分，效果提升一般。
   
   1) 动机：用户有两种兴趣，推荐常见的隐式的不变的固有兴趣和搜索常见的变化的显式的需求兴趣（unchanging inherent intents and changing demand
 intents）。其实这两种兴趣在两个场景中都存在。比如tom和amy固有兴趣分别喜欢辣和甜，但是变化是虽然都来到了pizza hub但是amy今天想要吃pizza而tom想吃pasta。或者说喜欢便宜，但是夏天喜欢tshirt，冬天喜欢雪地靴。对于推荐来说，需要用搜索的demand来监督兴趣学习；对于搜索来说，需要用固有兴趣来个性化结果。这两块当前都做的不够。r, both types of intents are implicitly expressed in recommendation scenario, posing challenges
