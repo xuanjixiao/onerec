@@ -14,7 +14,7 @@
 # 2024 UDITSR
 对于推荐的每一次交互生成虚拟的query，然后再搜推场景上对于user-query-item这样的三元图，进行类似transE一样的训练。美团，理论完备，实验对比不充分，效果提升一般。
 
- <img width="173" alt="image" src="https://github.com/user-attachments/assets/857114ab-628c-433e-9b2e-ceac93228b41">
+ <img width="500" alt="image" src="https://github.com/user-attachments/assets/857114ab-628c-433e-9b2e-ceac93228b41">
 
   
   1) 动机：用户有两种兴趣，推荐常见的隐式的不变的固有兴趣和搜索常见的变化的显式的需求兴趣（unchanging inherent intents and changing demand
