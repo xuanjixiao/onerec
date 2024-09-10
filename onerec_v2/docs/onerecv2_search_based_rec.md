@@ -9,15 +9,25 @@
 
 - [UniSAR: Modeling User Transition Behaviors between Search and Recommendation](https://arxiv.org/abs/2404.09520)
 - [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
-- [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)
-  1) 动机：推荐的固有兴趣和搜索的主动兴趣。这个兴趣会同时影响用户的交互行为。r, both types of intents are implicitly expressed in recommendation scenario, posing challenges
+- [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)--UDITSR
+  
+  1) 动机：用户有两种兴趣，推荐常见的隐式的不变的固有兴趣和搜索常见的变化的显式的需求兴趣（unchanging inherent intents and changing demand
+intents）。其实这两种兴趣在两个场景中都存在。比如tom和amy固有兴趣分别喜欢辣和甜，但是变化是虽然都来到了pizza hub但是amy今天想要吃pizza而tom想吃pasta。或者说喜欢便宜，但是夏天喜欢tshirt，冬天喜欢雪地靴。对于推荐来说，需要用搜索的demand来监督兴趣学习；对于搜索来说，需要用固有兴趣来个性化结果。这两块当前都做的不够。r, both types of intents are implicitly expressed in recommendation scenario, posing challenges
 in leveraging them for accurate intent-aware recommendations.users express their demand
 intents explicitly through their query words。
-挑战：: (1) accurately modeling users’ implicit demand intents in recommendation; (2) modeling the relation between the dual intents and the
-interactive items
-2）方法：使用搜索query监督推荐中的主动兴趣，建模<inherent intent, demand intent, interactive item>三元组。效果在美团上GMV和点击率+1%。To accurately simulate users’ demand intents in recommendation, we utilize real queries
+- 挑战：: (1) accurately modeling users’ implicit demand intents in recommendation; (2) modeling the relation between the dual intents and the interactive items。使用搜索query监督推荐中的主动兴趣，建模<inherent intent, demand intent, interactive item>三元组。效果在美团上GMV和点击率+1%。To accurately simulate users’ demand intents in recommendation, we utilize real queries
 from search data as supervision information to guide its generation. To explicitly model the relation among the triplet <inherent intent, demand intent, interactive item>, we propose a dual-intent translation propagation mechanism to learn the triplet in the same semantic space via embedding translations。
- 
+- 方法：
+1) 构图U——I，在推荐域中生成虚拟的query作为边的属性，信息来源使用user embedding，item embedding，user带有的query信息，item带有的query信息，eˆ𝑞 = MLP(e𝑢 ∥e𝑖 ∥e𝑞𝑢∥e𝑞𝑖),。这个query就是demanding intent的表示。胜 How to accurately model a user’s implicit demand intent in recommendation with search data? 使用搜索query监督生成推荐中的demand interest，之前的工作假设demand interest是不变的，这个是不对的，应该使用一个变化的query 历史序列。
+<img width="146" alt="image" src="https://github.com/user-attachments/assets/d5a2f1ad-7929-4ea6-86f0-cc6afd2b24cb">
+<img width="161" alt="image" src="https://github.com/user-attachments/assets/860d14e6-e585-4830-9fce-502cf140c059">
+2) 建模dual-intent和item关系得到user和item embeding，在user-query-item这样的带有边属性的三元图上使用类似gcn+transE算法。 How to couple the dual intents to model the relation among the intents and the interactive items? 如何建模两个意图和item的关系。
+<img width="208" alt="image" src="https://github.com/user-attachments/assets/400ab845-23a2-4345-b2c1-161a27808c4a">
+<img width="285" alt="image" src="https://github.com/user-attachments/assets/0919a23d-95b7-49e7-a5d2-c4b30e4c39d8">
+
+3）最后使用user，item，query做预测。
+<img width="95" alt="image" src="https://github.com/user-attachments/assets/4e0cb878-aafc-4d98-89c0-93319be260d4">
+
 
 -  Joint Search and Recommendation. In recent years, there hasbeen a trend toward integrating S&R. These works primarily fall
 into two categories: (a) Search enhanced recommendation [14, 25,
