@@ -9,6 +9,7 @@
 
 - [UniSAR: Modeling User Transition Behaviors between Search and Recommendation](https://arxiv.org/abs/2404.09520)
 - [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
+- [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)
 -  Joint Search and Recommendation. In recent years, there hasbeen a trend toward integrating S&R. These works primarily fall
 into two categories: (a) Search enhanced recommendation [14, 25,
 27, 30, 36]. This type of work utilizes search data as supplementary information to enhance the recommendation performance.
