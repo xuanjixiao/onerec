@@ -10,6 +10,15 @@
 - [UniSAR: Modeling User Transition Behaviors between Search and Recommendation](https://arxiv.org/abs/2404.09520)
 - [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
 - [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)
+  1) 动机：推荐的固有兴趣和搜索的主动兴趣。这个兴趣会同时影响用户的交互行为。r, both types of intents are implicitly expressed in recommendation scenario, posing challenges
+in leveraging them for accurate intent-aware recommendations.users express their demand
+intents explicitly through their query words。
+挑战：: (1) accurately modeling users’ implicit demand intents in recommendation; (2) modeling the relation between the dual intents and the
+interactive items
+2）方法：使用搜索query监督推荐中的主动兴趣，建模<inherent intent, demand intent, interactive item>三元组。效果在美团上GMV和点击率+1%。To accurately simulate users’ demand intents in recommendation, we utilize real queries
+from search data as supervision information to guide its generation. To explicitly model the relation among the triplet <inherent intent, demand intent, interactive item>, we propose a dual-intent translation propagation mechanism to learn the triplet in the same semantic space via embedding translations。
+ 
+
 -  Joint Search and Recommendation. In recent years, there hasbeen a trend toward integrating S&R. These works primarily fall
 into two categories: (a) Search enhanced recommendation [14, 25,
 27, 30, 36]. This type of work utilizes search data as supplementary information to enhance the recommendation performance.
