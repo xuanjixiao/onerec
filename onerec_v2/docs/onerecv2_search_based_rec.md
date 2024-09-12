@@ -12,8 +12,7 @@
 - [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)--
 
 # When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation-2023
-intro：当前做搜推数据结合一起的方法很少，有的也是把数据在一起使用，忽略了两个场景的用户意图不一样。SESRec利用搜索增强推荐场景效果。方法：1）把相似和不相似的用户意图表征解耦 2）把query和item embedding对齐，方便处理query作为用户意图。3）最终得到相似意图，不相似意图，上下文意图三个用户兴趣。. In our paper, we propose a Search-Enhanced framework for the Sequential Recommendation (SESRec) that leverages users’ search
-interests for recommendation, by disentangling similar and dissimilar representations within S&R behaviors. Specifically, SESRec first
+- 1）intro：当前做搜推数据结合一起的方法很少，有的也是把数据在一起使用，忽略了两个场景的用户意图不一样。SESRec利用搜索增强推荐场景效果。方法：1）把相似和不相似的用户意图表征解耦 2）把query和item embedding对齐，方便处理query作为用户意图。3）最终得到相似意图，不相似意图，上下文意图三个用户兴趣。. In our paper, we propose a Search-Enhanced framework for the Sequential Recommendation (SESRec) that leverages users’ search interests for recommendation, by disentangling similar and dissimilar representations within S&R behaviors. Specifically, SESRec first
 aligns query and item embeddings based on users’ query-item interactions for the computations of their similarities. Two transformer
 encoders are used to learn the contextual representations of S&R
 behaviors independently. Then a contrastive learning task is designed to supervise the disentanglement of similar and dissimilar
@@ -21,6 +20,8 @@ representations from behavior sequences of S&R. Finally, we extract
 user interests by the attention mechanism from three perspectives,
 i.e., the contextual representations, the two separated behaviors
 containing similar and dissimilar interests.
+- 2）具体来说，为了解决推荐和搜索行为中的相似兴趣和不相似兴趣，建立搜索序列和推荐序列的相似度矩阵affinity matrix。然后根据这个矩阵的得分，对搜索（推荐）序列提取出来和对方相似的序列p和不相似的序列n，这样搜索（推荐序列）可以分解为3个序列，原始序列，相似序列，不相似序列。 对于6各序列使用target attention。对于搜索序列的处理，使用query和item对比学习，映射到同一个空间。
+- 
 # 2024 UDITSR-对于推荐的每一次交互生成虚拟的query
 对于推荐的每一次交互生成虚拟的query，然后再搜推场景上对于user-query-item这样的三元图，进行类似transE一样的训练。美团，理论完备，实验对比不充分（只有2个属于同领域工作，但是这两个还比较古老），效果提升只有1%。
 
