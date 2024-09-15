@@ -1,0 +1,17 @@
+
+1. 数据目录
+2. inter_file_name: 'baby.inter'
+3. utils/metrics.py 中np.float 改成np.float64
+5. models/dragon.py 由self.result_embed = torch.cat((user_rep, item_rep), dim=0) 改成self.result_embed = nn.Parameter(torch.cat((user_rep, item_rep), dim=0))
+
+nohup python main.py --data baby &
+
+
+# 确保 PyTorch 和 NVCC 使用相同版本的 CUDA：
+nvcc --version
+python -c "import torch; print(torch.version.cuda);"
+
+draon无法与官方的结果不一致排查:
+1. text_feat-v1配置读取不到,修改后 0.90+
+2. mm_adj_5.pt已经存在不会重新加载, 0.10
+
