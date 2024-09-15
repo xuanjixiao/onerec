@@ -55,13 +55,21 @@ dragon的这个论文中，在Homogeneous Graph部分，采用提前计算邻接
 
 ## 论文收集
 1.AlignRec: Aligning and Training in Multimodal Recommendations
+
 2.Enhancing Dyadic Relations with Homogeneous Graphs for Multimodal Recommendation
+
 3.Enhancing Taobao Display Advertising with Multimodal Representations: Challenges, Approaches and Insights
+
 4.Layer-refined Graph Convolutional Networks for Recommendation
+
 5.Improving Multi-modal Recommender Systems by Denoising and Aligning Multi-modal Content and User Feedback
+
 6.Multi-Modal Self-Supervised Learning for Recommendation
+
 7.One Multimodal Plugin Enhancing All: CLIP-based Pre-training Multimodal Item Representations for Recommendation System
+
 8.MMGCN: Multi-modal Graph Convolution Network for Personalized Recommendation of Micro-video
+
 9.
 
 
