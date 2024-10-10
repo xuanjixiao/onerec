@@ -430,3 +430,38 @@ ciao数据集：
 - 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
 - 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
 - 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
+
+
+
+# 8 meeting 20241010
+
+## 1 社交&行为：
+- 本次进展：王林验证效果，ciao数据集效果好，lastfm效果不好。 @wanglin @wangweisong
+- 下次预期：1）lastfm调整学习率，和baseline一直为0.001查看效果。2）尝试玄基提出的四种view的方案 3）寻找新数据集合。
+  玄基方案：1）我们之所以用社交信息，是认为社交关系紧密的用户，他们的物品偏好一样。那么为什么不直接试试朋友们喜欢的物品，作为我自己可能的兴趣描述呢（当然具体的单个物品可能是噪声）。我是担心我们没有直接学到这样一种二度信息传递:user通过社交关系找到了好友user，好友user通过行为关联到点击过的item。这样user就关联上了好友点击过的item。2）形式上，比较完备，四种对称的view。 3）问题是，user--user--item中，第二步user-item传递可能会有噪声或者不准确：朋友是随意点击的，或者我朋友喜欢的东西我不一定喜欢。解决方法是：1）随意点击：找到第二步user-item强关联，比如只用buy或者subscirbe信号，或者不使用点击使用点击率的预估分作为user-item的关联强度 2）我和朋友不一致：只有第一步user-user关系特别好的，才关联第二步。 具体方案见：[https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md)
+
+- 文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+- 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。
+
+## 2 搜索信号运用到推荐里面
+- 本次进展：xiangyuan初步方案给出。
+- 下次预期：xiangyuan把方案给到大家，和瑞雪，zhijian一起讨论新方案
+
+#### 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md）
+
+## 3 多模态&行为-changqing
+- 本次： 设计了7个方法点，https://docs.qq.com/doc/DRW9WcnlkUEpDclhk，进行实验和讨论
+- 下次： 后续调研，聚焦两个点：1）多模态fusion，2）构图时候topk近似改成无参数attention方案---这个需要找到代表的物理意义和优点。
+
+#### 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 本次：liuweida实现baseline中
+- 下次： 实现完baseline，和文豪沟通。
+- 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
+
+
+
+
