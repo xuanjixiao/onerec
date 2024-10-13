@@ -12,12 +12,14 @@ import torch.nn.functional as F
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, degree
 import torch_geometric
-import math
-from typing import Optional, Tuple, Union, List, Callable, Dict, Any
-from torch.nn import LayerNorm
+
 from common.abstract_recommender import GeneralRecommender
 from common.loss import BPRLoss, EmbLoss
 from common.init import xavier_uniform_initialization
+
+import math
+from typing import Optional, Tuple, Union, List, Callable, Dict, Any
+from torch.nn import LayerNorm
 
 
 class DRAGON(GeneralRecommender):
@@ -45,20 +47,16 @@ class DRAGON(GeneralRecommender):
 
         self.cold_start = 0
         self.dataset = dataset
-        self.construction = 'weighted_max'
-        # self.construction = 'cat'
+        # self.construction = 'weighted_max'
+        self.construction = 'cat'
         self.reg_weight = config['reg_weight']
         self.drop_rate = 0.1
         self.v_rep = None
         self.t_rep = None
-        self.i_rep = None
         self.v_preference = None
         self.t_preference = None
-        self.i_preference = None
         self.dim_latent = 64
         self.dim_feat = 128
-        # self.dim_latent = 256
-        # self.dim_feat = 128
         self.MLP_v = nn.Linear(self.dim_latent, self.dim_latent, bias=False)
         self.MLP_t = nn.Linear(self.dim_latent, self.dim_latent, bias=False)
         self.mm_adj = None
@@ -69,7 +67,11 @@ class DRAGON(GeneralRecommender):
         self.use_transformer = False
 
         # add item_feature
-        use_item_feature = True
+        use_item_feature = False
+        self.i_feat = None
+        self.i_rep = None
+        self.i_preference = None
+
 
         dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
         self.user_graph_dict = np.load(os.path.join(dataset_path, config['user_graph_dict_file']), allow_pickle=True).item()
@@ -137,11 +139,11 @@ class DRAGON(GeneralRecommender):
                     params_dtype=params_dtype
                 )
 
-        # self.layers = torch.nn.ModuleList(
-        #     [get_layer(layer_id) for layer_id in range(self.trans_num_layer)]
-        # )
-        # Final layer norm before output.
-        # self.final_layernorm = LayerNorm(hidden_size, eps=layernorm_epsilon)
+            self.layers = torch.nn.ModuleList(
+                [get_layer(layer_id) for layer_id in range(self.trans_num_layer)]
+            )
+            # Final layer norm before output.
+            self.final_layernorm = LayerNorm(hidden_size, eps=layernorm_epsilon)
 
         # packing interaction in training into edge_index
         train_interactions = dataset.inter_matrix(form='coo').astype(np.float32)
@@ -250,10 +252,11 @@ class DRAGON(GeneralRecommender):
                             num_layer=self.num_layer, has_id=has_id, dropout=self.drop_rate, dim_latent=self.dim_latent,
                             device=self.device, features=self.t_feat)
 
-            self.i_drop_ze = torch.zeros(len(self.dropt_node_idx), self.i_feat.size(1)).to(self.device)
-            self.i_gcn = GCN(self.dataset, batch_size, num_user, num_item, dim_x, self.aggr_mode,
-                             num_layer=self.num_layer, has_id=has_id, dropout=self.drop_rate,
-                             dim_latent=self.dim_latent, device=self.device, features=self.i_feat)
+            if self.i_feat:
+                self.i_drop_ze = torch.zeros(len(self.dropt_node_idx), self.i_feat.size(1)).to(self.device)
+                self.i_gcn = GCN(self.dataset, batch_size, num_user, num_item, dim_x, self.aggr_mode,
+                                 num_layer=self.num_layer, has_id=has_id, dropout=self.drop_rate,
+                                 dim_latent=self.dim_latent, device=self.device, features=self.i_feat)
 
         self.user_graph = User_Graph_sample(num_user, 'add', self.dim_latent)
 
@@ -470,26 +473,21 @@ class DRAGON(GeneralRecommender):
         elif self.construction == 'cat_mlp':
             reg_loss += self.reg_weight * (self.MLP_user.weight ** 2).mean()
 
-        reg_embedding_loss_i = (self.i_preference[user] ** 2).mean() if self.i_preference is not None else 0.0
-        # print(self.num_user, self.num_item, pos_item.size(), neg_item.size(), self.t_rep.size(), self.i_feat.size())
-        all_items = torch.cat((pos_item, neg_item), dim=0)
-        # print("all_item:", all_items.size())
+        if self.i_feat:
+            reg_embedding_loss_i = (self.i_preference[user] ** 2).mean() if self.i_preference is not None else 0.0
+            # print(self.num_user, self.num_item, pos_item.size(), neg_item.size(), self.t_rep.size(), self.i_feat.size())
+            all_items = torch.cat((pos_item, neg_item), dim=0)
+            # print("all_item:", all_items.size())
 
-        # print("t_rep:", self.t_rep[all_items].size(), self.i_rep[all_items].size())
-        align_loss_tensor = torch.add(
-            torch.cosine_similarity(self.t_rep[all_items], self.i_rep[all_items]),
-            torch.cosine_similarity(self.t_rep[all_items], self.i_rep[all_items]))
+            # print("t_rep:", self.t_rep[all_items].size(), self.i_rep[all_items].size())
+            align_loss_tensor = torch.add(
+                torch.cosine_similarity(self.t_rep[all_items], self.i_rep[all_items]),
+                torch.cosine_similarity(self.t_rep[all_items], self.i_rep[all_items]))
 
-        # print("align_loss_tensor:", align_loss_tensor.size())
-        # print("torch.cosine_similarity", torch.cosine_similarity(self.t_rep[all_items] - self.i_rep[all_items],
-        #                                                          self.t_rep[all_items] - self.i_rep[all_items]).size())
-        # diversity_loss = torch.matmul(torch.cosine_similarity(
-        #     self.t_rep[all_items] - self.i_rep[all_items],
-        #     self.t_rep[all_items] - self.i_rep[all_items]), align_loss_tensor)
-        diversity_loss = torch.matmul(torch.cosine_similarity(
-            self.t_rep[all_items] - self.i_rep[all_items],
-            self.t_rep[all_items] - self.i_rep[all_items]), align_loss_tensor.T)
-        reg_loss += -align_loss_tensor.mean() - diversity_loss.mean() + reg_embedding_loss_i
+            diversity_loss = torch.matmul(torch.cosine_similarity(
+                self.t_rep[all_items] - self.i_rep[all_items],
+                self.t_rep[all_items] - self.i_rep[all_items]), align_loss_tensor.T)
+            reg_loss += -align_loss_tensor.mean() - diversity_loss.mean() + reg_embedding_loss_i
         return loss_value + reg_loss
 
     def full_sort_predict(self, interaction):
