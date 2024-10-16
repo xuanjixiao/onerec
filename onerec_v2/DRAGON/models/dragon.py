@@ -67,7 +67,7 @@ class DRAGON(GeneralRecommender):
         self.use_transformer = False
 
         # add item_feature
-        use_item_feature = False
+        use_item_feature = True
         self.i_feat = None
         self.i_rep = None
         self.i_preference = None
@@ -217,8 +217,8 @@ class DRAGON(GeneralRecommender):
         edge_index = edge_index[np.lexsort(edge_index.T[1, None])]
         edge_index_dropv = edge_index[mask_dropv]
         edge_index_dropt = edge_index[mask_dropt]
-        # edge_index_dropi = edge_index[mask_drop]
-        edge_index_drop = edge_index  # 全量保存
+        edge_index_drop = edge_index[mask_drop]
+        # edge_index_drop = edge_index  # 全量保存
 
         # edge_index_dropt， edge_index_dropv 为抽样之后的值
         self.edge_index_dropv = torch.tensor(edge_index_dropv).t().contiguous().to(self.device)
@@ -252,8 +252,8 @@ class DRAGON(GeneralRecommender):
                             num_layer=self.num_layer, has_id=has_id, dropout=self.drop_rate, dim_latent=self.dim_latent,
                             device=self.device, features=self.t_feat)
 
-            if self.i_feat:
-                self.i_drop_ze = torch.zeros(len(self.dropt_node_idx), self.i_feat.size(1)).to(self.device)
+            if self.i_feat is not None:
+                self.i_drop_ze = torch.zeros(len(self.drop_node_idx), self.i_feat.size(1)).to(self.device)
                 self.i_gcn = GCN(self.dataset, batch_size, num_user, num_item, dim_x, self.aggr_mode,
                                  num_layer=self.num_layer, has_id=has_id, dropout=self.drop_rate,
                                  dim_latent=self.dim_latent, device=self.device, features=self.i_feat)
@@ -351,7 +351,7 @@ class DRAGON(GeneralRecommender):
             if self.i_feat is not None:
                 self.i_rep, self.i_preference = self.i_gcn(self.edge_index_drop, self.edge_index, self.i_feat)
                 if self.construction == 'cat':
-                    representation = torch.cat((self.representation, self.i_rep), dim=1)
+                    representation = torch.cat((representation, self.i_rep), dim=1)
                 else:
                     representation += self.i_rep
 
@@ -408,10 +408,11 @@ class DRAGON(GeneralRecommender):
                     user_rep = torch.cat((self.v_rep[:self.num_user], self.t_rep[:self.num_user], self.i_rep[:self.num_user]), dim=2)
                     user_rep = self.weight_u.transpose(1,2)*user_rep
 
-                    user_rep = torch.cat((user_rep[:,:,0], user_rep[:,:,1]), dim=1)
+                    user_rep = torch.cat((user_rep[:,:,0], user_rep[:,:,1], user_rep[:,:,2]), dim=1)
 
 
         item_rep = representation[self.num_user:]
+        # print("befor aggregation:", user_rep.shape, user_rep.dtype, item_rep.shape, item_rep.dtype)
 
         ############################################ multi-modal information aggregation
         h = item_rep
@@ -423,7 +424,8 @@ class DRAGON(GeneralRecommender):
         item_rep = item_rep + h
         # print("user_rep,item.rep:", user_rep, item_rep)
         # print("user_rep", user_rep.shape, user_rep.dtype, item_rep.shape, item_rep.dtype)
-        self.result_embed = torch.nn.Parameter(torch.cat((user_rep, item_rep), dim=0))
+        self.result_embed = torch.cat((user_rep, item_rep), dim=0)
+        # self.result_embed = torch.nn.Parameter(torch.cat((user_rep, item_rep), dim=0))
 
         # representation: torch.Size([26495, 256])
         # print("representation:", representation.shape)
@@ -473,13 +475,14 @@ class DRAGON(GeneralRecommender):
         elif self.construction == 'cat_mlp':
             reg_loss += self.reg_weight * (self.MLP_user.weight ** 2).mean()
 
-        if self.i_feat:
+        if self.i_feat is not None:
             reg_embedding_loss_i = (self.i_preference[user] ** 2).mean() if self.i_preference is not None else 0.0
             # print(self.num_user, self.num_item, pos_item.size(), neg_item.size(), self.t_rep.size(), self.i_feat.size())
             all_items = torch.cat((pos_item, neg_item), dim=0)
             # print("all_item:", all_items.size())
 
             # print("t_rep:", self.t_rep[all_items].size(), self.i_rep[all_items].size())
+            #  加一l2 norm， 然后计算rmse loss
             align_loss_tensor = torch.add(
                 torch.cosine_similarity(self.t_rep[all_items], self.i_rep[all_items]),
                 torch.cosine_similarity(self.t_rep[all_items], self.i_rep[all_items]))
