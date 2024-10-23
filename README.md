@@ -15,11 +15,12 @@ Under the paradigm of conventional recommendation system algorithm and system du
 
 
 The main contributor to the current code: 
-Xuanji Xiao, xuanji.xiao@gmail.com,google scholar page:[https://scholar.google.com/citations?user=DFsMY2IAAAAJ](https://scholar.google.com/citations?user=DFsMY2IAAAAJ),
+Xuanji Xiao, xuanji.xiao@gmail.com,[https://scholar.google.com/citations?user=DFsMY2IAAAAJ](https://scholar.google.com/citations?user=DFsMY2IAAAAJ),
 Ziyu He, Huaqiang Dai, Huabin Chen, 
 Yuzhen Liu:[https://github.com/codestorm04](https://github.com/codestorm04)
 
-当前代码主要贡献者：[肖玄基,google scholar page:](https://scholar.google.com/citations?user=DFsMY2IAAAAJ)([Xuanji Xiao, xuanji.xiao@gmail.com](https://scholar.google.com/citations?user=DFsMY2IAAAAJ))，和子钰(Ziyu He)，戴华强(Huaqiang Dai)，陈华斌(Huabin Chen)、[刘誉臻(Yuzhen Liu)](https://github.com/codestorm04)
+当前代码主要贡献者：肖玄基,xuanji.xiao@gmail.com,[https://scholar.google.com/citations?user=DFsMY2IAAAAJ](https://scholar.google.com/citations?user=DFsMY2IAAAAJ);和子钰(Ziyu He);戴华强(Huaqiang Dai);陈华斌(Huabin Chen);
+刘誉臻(Yuzhen Liu),[https://github.com/codestorm04](https://github.com/codestorm04)
 
 
 
