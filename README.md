@@ -14,7 +14,7 @@ Under the paradigm of conventional recommendation system algorithm and system du
 ![image](https://github.com/xuanjixiao/onerec/assets/15994016/eb7dafe4-b998-4aa1-8546-3b770e76cf11)
 
 
-The main contributor to the current code: [Xuanji Xiao, xuanji.xiao@gmail.com](https://scholar.google.com/ citations?user=DFsMY2IAAAAJ)), Ziyu He, Huaqiang Dai, Huabin Chen, [Yuzhen Liu](https://github.com/codestorm04)
+The main contributor to the current code: [Xuanji Xiao, xuanji.xiao@gmail.com](https://scholar.google.com/citations?user=DFsMY2IAAAAJ)), Ziyu He, Huaqiang Dai, Huabin Chen, [Yuzhen Liu](https://github.com/codestorm04)
 当前代码主要贡献者：[肖玄基](https://scholar.google.com/citations?user=DFsMY2IAAAAJ)([Xuanji Xiao, xuanji.xiao@gmail.com](https://scholar.google.com/citations?user=DFsMY2IAAAAJ))，和子钰(Ziyu He)，戴华强(Huaqiang Dai)，陈华斌(Huabin Chen)、[刘誉臻(Yuzhen Liu)](https://github.com/codestorm04)
 
 
