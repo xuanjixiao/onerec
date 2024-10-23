@@ -19,7 +19,7 @@ Xuanji Xiao, xuanji.xiao@gmail.com,[https://scholar.google.com/citations?user=DF
 Ziyu He, Huaqiang Dai, Huabin Chen, 
 Yuzhen Liu:[https://github.com/codestorm04](https://github.com/codestorm04)
 
-当前代码主要贡献者：肖玄基,xuanji.xiao@gmail.com,[https://scholar.google.com/citations?user=DFsMY2IAAAAJ](https://scholar.google.com/citations?user=DFsMY2IAAAAJ);和子钰(Ziyu He);戴华强(Huaqiang Dai);陈华斌(Huabin Chen);
+当前代码主要贡献者：肖玄基(Xuanji Xiao),xuanji.xiao@gmail.com,[https://scholar.google.com/citations?user=DFsMY2IAAAAJ](https://scholar.google.com/citations?user=DFsMY2IAAAAJ);和子钰(Ziyu He);戴华强(Huaqiang Dai);陈华斌(Huabin Chen);
 刘誉臻(Yuzhen Liu),[https://github.com/codestorm04](https://github.com/codestorm04)
 
 
