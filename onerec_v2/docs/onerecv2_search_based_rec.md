@@ -21,10 +21,11 @@ user interests by the attention mechanism from three perspectives,
 i.e., the contextual representations, the two separated behaviors
 containing similar and dissimilar interests.
 - 2）具体来说，为了解决推荐和搜索行为中的相似兴趣和不相似兴趣，建立搜索序列和推荐序列的相似度矩阵affinity matrix。然后根据这个矩阵的得分，对搜索（推荐）序列提取出来和对方相似的序列p和不相似的序列n，这样搜索（推荐序列）可以分解为3个序列，原始序列，相似序列，不相似序列。 对于6各序列使用target attention。对于搜索序列的处理，使用query和item对比学习，映射到同一个空间。
-- 
+<img width="500" alt="image" src="https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/img/IMG_8218.jpeg">
+
+
 # 2024 UDITSR-对于推荐的每一次交互生成虚拟的query
 对于推荐的每一次交互生成虚拟的query，然后再搜推场景上对于user-query-item这样的三元图，进行类似transE一样的训练。美团，理论完备，实验对比不充分（只有2个属于同领域工作，但是这两个还比较古老），效果提升只有1%。
-
  <img width="500" alt="image" src="https://github.com/user-attachments/assets/857114ab-628c-433e-9b2e-ceac93228b41">
 
   
