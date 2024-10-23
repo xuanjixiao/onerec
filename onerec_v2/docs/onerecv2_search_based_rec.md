@@ -11,7 +11,7 @@
 - SESRec [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
 - [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)--
 
-# When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation-2023
+# SESRec When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation-2023
 - 1）intro：当前做搜推数据结合一起的方法很少，有的也是把数据在一起使用，忽略了两个场景的用户意图不一样。SESRec利用搜索增强推荐场景效果。方法：1）把相似和不相似的用户意图表征解耦 2）把query和item embedding对齐，方便处理query作为用户意图。3）最终得到相似意图，不相似意图，上下文意图三个用户兴趣。. In our paper, we propose a Search-Enhanced framework for the Sequential Recommendation (SESRec) that leverages users’ search interests for recommendation, by disentangling similar and dissimilar representations within S&R behaviors. Specifically, SESRec first
 aligns query and item embeddings based on users’ query-item interactions for the computations of their similarities. Two transformer
 encoders are used to learn the contextual representations of S&R
