@@ -1,0 +1,100 @@
+# FROM tells Docker which base image to use for this build
+FROM tensorflow/tensorflow:1.13.1-gpu-py3
+# COPY is used to copy tftest.py from the local machine
+# to a location inside the image
+# COPY tftest.py /tmp
+# ENV can be used to set environment variables
+# ENV TFTEST_ENV_VAR 12345
+# WORKDIR configures the current working directory that
+# the CMD will be executed within. Since the COPY
+# command above puts the script under /tmp, we'll set
+# it to the same location so we can run the script with
+# no path prefix
+# WORKDIR /tmp
+# CMD defines the command that containers will run when
+# created from this image
+# CMD ["python", "tftest.py"]
+RUN pip install pandas
+RUN pip install trfl
+RUN pip install tensorflow-probability==0.6.0
+
+
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: SASRec-AC
+  namespace: xinxinproject
+spec:
+  template:
+    metadata:
+      name: SASRec-AC
+    spec:
+      containers:
+        - name: trfl
+          image: xinxingla/trfl:latest
+          resources:
+            requests:
+              cpu: "1500m"
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "2500m"
+              nvidia.com/gpu: 1
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /rl4rec
+              name: rl4rec
+          workingDir: /rl4rec/RL4REC/RC15
+          command:
+            - 'python'
+          args:
+            - 'SASRec_AC.py'
+            - '--discount=0.2'
+            - '--r_click=1.0'
+            - '--r_buy=5.0'
+      restartPolicy: Never
+      volumes:
+        - name: rl4rec
+          persistentVolumeClaim:
+            claimName: xinxinvol1claim
+
+
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: GRU-kaggle-0.005-AC
+  namespace: xinxinproject
+spec:
+  template:
+    metadata:
+      name: GRU-kaggle-0.005-AC
+    spec:
+      containers:
+        - name: trfl
+          image: xinxingla/trfl:latest
+          resources:
+            requests:
+              cpu: "1500m"
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "2500m"
+              nvidia.com/gpu: 1
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /rl4rec
+              name: rl4rec
+          workingDir: /rl4rec/RL4REC/Kaggle
+          command:
+            - 'python'
+          args:
+            - 'GRU_AC.py'
+            - '--lr=0.005'
+            - '--discount=0.2'
+            - '--r_click=1.0'
+            - '--r_buy=5.0'
+      restartPolicy: Never
+      volumes:
+        - name: rl4rec
+          persistentVolumeClaim:
+            claimName: xinxinvol1claim
