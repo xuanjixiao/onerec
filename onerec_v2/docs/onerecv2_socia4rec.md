@@ -71,5 +71,5 @@ motivation是有些用户没有行为，那么只能用他的朋友的embedding�
   * 2）找社交信息包含较多噪声的数据集进行实验
 
 其他：比较漂亮的图：
-<img width="400" alt="image" src="https://github.com/user-attachments/assets/6cbe77d1-29a3-4ec0-875d-7d9730b255c0">
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/6cbe77d1-29a3-4ec0-875d-7d9730b255c0">
 
