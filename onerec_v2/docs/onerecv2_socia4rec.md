@@ -42,6 +42,9 @@ References
 
 ![image](https://github.com/user-attachments/assets/97d7936f-28ea-42f7-a41a-a8941b6345e9)
 
+4）还可以增加一个behavior aware的aggregation
+motivation是有些用户没有行为，那么只能用他的朋友的embedding作为代替特征。我们的方案是，根据用户行为的稀疏程度，决定社交信息的融合程度；如果行为行为非常稠密那么也许社交信息要融入少一点同时更加注重补充不同的信息；而行为比较稀疏，那么就需要把社交信息融入的比较多。
+
 ## 2 试验进展 (0402)
 
 论文原文中LastFM的实验数据和加入对比损失之后的实验效果(对比损失系数 1e-7)
