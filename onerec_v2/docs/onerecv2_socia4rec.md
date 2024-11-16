@@ -2,8 +2,8 @@ owner by DR Wanglin
 
 ## 1 设计概述
 社交和图的建模方案确定。socialLGN + contrative learning.  
-1)当前社交方式中，相似朋友会有相似兴趣，但是单向关注的大v关系不能说有相似兴趣。其次，存在行为或者社交关系很稀疏的情况。方法是建立一个新的社交关系图。先通过svd提取user-item的embedding，这样可以提取重要信息且减少噪音。然后使用user embedding相似度建立新的图，基于行为的关系图和原来的社交关系图的对比学习，可以当作用户的数据增强。
-如下图所示，社交关系是一个图，然后user-item是一个图，然后通过user-item提取得到的user是一个user图。loss除了user-item之外，还有一个就是social graph得到的user embedding和行为得到的user embedding进行contrastive learnin
+1)当前社交方式中，相似朋友会有相似兴趣，但是单向关注的大v关系不能说有相似兴趣。其次，存在行为或者社交关系很稀疏的情况。方法是建立一个新的基于行为的社交关系图。先通过svd提取user-item的embedding，这样可以提取重要信息且减少噪音。然后使用user embedding相似度建立新的图，基于行为的关系图和原来的社交关系图的对比学习，可以当作用户的数据增强。
+如下图所示，社交关系是一个图，然后user-item是一个图，然后通过user-item提取得到的user关系图又是一个user社交图。loss除了user-item之外，还有一个就是social graph得到的user embedding和行为得到的user embedding进行contrastive learnin
 
 2）contribution够吗？  
  a)如何处理social node with few social connections？ diffusion model
@@ -42,6 +42,9 @@ References
 
 ![image](https://github.com/user-attachments/assets/97d7936f-28ea-42f7-a41a-a8941b6345e9)
 
+4）还可以增加一个behavior aware的aggregation
+motivation是有些用户没有行为，那么只能用他的朋友的embedding作为代替特征。我们的方案是，根据用户行为的稀疏程度，决定社交信息的融合程度；如果行为行为非常稠密那么也许社交信息要融入少一点同时更加注重补充不同的信息；而行为比较稀疏，那么就需要把社交信息融入的比较多。
+
 ## 2 试验进展 (0402)
 
 论文原文中LastFM的实验数据和加入对比损失之后的实验效果(对比损失系数 1e-7)
@@ -68,5 +71,5 @@ References
   * 2）找社交信息包含较多噪声的数据集进行实验
 
 其他：比较漂亮的图：
-<img width="280" alt="image" src="https://github.com/user-attachments/assets/6cbe77d1-29a3-4ec0-875d-7d9730b255c0">
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/6cbe77d1-29a3-4ec0-875d-7d9730b255c0">
 

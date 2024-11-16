@@ -1,8 +1,65 @@
 # 方案：
 
-- 当前多数平台都提供了搜索和推荐服务，但是两个服务通常是采用不同的模型分别建模，没有考虑到用户在搜索与推荐两个表示空间中的关联关系，通过构建两者间的联系，能够进一步挖掘用户潜在意图及兴趣，在满足用户需求的基础上，进一步激发用户消费。当前构建联系考虑以下方案：
+- 当前多数平台都提供了搜索和推荐服务，但是两个服务通常是采用不同的模型分别建模，没有考虑到用户在搜索与推荐两个表示空间中的关联关系，通过构建两者间的联系，能够进一步挖掘用户潜在意图及兴趣，在满足用户需求的基础上，进一步激发用户消费。当前构建联系考虑以下方案-：
   1. 构建用户搜索、搜索点击和feed消费混合序列，双向建模序列元素关系和用户意图、偏好表示
-  2. 从用户搜索序列和feed消费序列中根据序列相似性筛选相似用户，引入相似用户历史序列增强目标用户表示，拓展用户兴趣
+  3. 推荐到搜索的转换：
+     - 1）信息对齐。可以通过推荐生成一个虚拟的query词汇，从而可以和搜索对齐。对齐方式是，a）虚拟的query词汇和推荐序列，对齐真是的搜索query和序列。2 b）可以有多个query词汇和序列组成的二元组。
+  4. 搜索到推荐的转换：
+     - 1）兴趣是否一致。query要识别是突发兴趣还是相关兴趣，这样决定query加入到后续兴趣描述的强度。如果query和之前的推荐序列不太相符那就是突发兴趣，和之前的兴趣融合可以坐双兴趣表征；如果相一致，那么可以融合的更加深入一点。总之可以抽离出两个兴趣，突发兴趣和一致兴趣。
+     - 2）搜索兴趣随着时间衰减。近期的搜索行为看作成一个trigger，结合当前请求和搜索行为的时间差diff/或s2r后的请求页数，通常，随着diff的增加，该搜索兴趣的强度会逐渐下降。同时，1）对于搜索结果已满足的临时兴趣，没有在后续推荐中继续交互的兴趣，推荐序列中没有对该兴趣进一步加强，随diff增加，也逐渐减弱该兴趣。2）对于搜索结果未完全满足的非短期临时兴趣，在推荐序列中，如产生交互，推荐序列自然会包含该兴趣。
+     - 3）多个搜索兴趣的处理。
+  5. search,rec, s2r,r2s,这四种结果如何融合？
+  6.相似用户行为增强兴趣表征。通过相似用户在s2r或r2s中的行为来增强s2r，r2s表征。从用户搜索序列和feed消费序列中根据序列相似性筛选相似用户，引入相似用户历史序列增强目标用户表示，扩充用户兴趣
+  7. 核心问题：找到1)信息提取和融合的创新点 2）和uniSAR的不同创新点。
+
+
+
+
+
+#### 方案一 @xiangyuan：
+
+- 通过构建S2S、R2R、S2R、R2S四个序列，分别提升搜索和推荐效果，其中R2S和S2R为序列状态转换模块
+- 考虑到用户从推荐状态转换到搜索状态通常是由相关推荐引起用户兴趣从而进行搜索，因此在由推荐状态转换到搜索状态时，通过related-select模块对前序推荐序列进行筛选
+- 考虑到用户在推荐状态下偏好的物品通常与近期搜索的项目相关，因此在由搜索状态转到推荐状态时，通过设置近邻时间阈值进行过筛
+
+![image](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/img/model1.png)
+
+#### 方案二 @ruixue：
+
+对该问题的思考：因该问题想及时捕捉到用户搜索行为的信号到推荐算法中，因此可将近期的搜索行为看作成一个trigger，结合当前请求和搜索行为的时间差diff/或s2r后的请求页数，通常，随着diff的增加，该搜索兴趣的强度会逐渐下降。同时，1）对于搜索结果已满足的临时兴趣，没有在后续推荐中继续交互的兴趣，推荐序列中没有对该兴趣进一步加强，随diff增加，也逐渐减弱该兴趣。2）对于搜索结果未完全满足的非短期临时兴趣，在推荐序列中，如产生交互，推荐序列自然会包含该兴趣。
+
+- query和item对齐，对比学习loss,但负采样扩大范围，不用batch内。
+
+- 生成两个概率，分别对应偏向搜索兴趣P_s和target_item兴趣偏好分P_t。input：user侧特征，最近的搜索行为时间diff,最近的搜索行为相关item的mean_pooling，与历史行为序列中同类目item的mean_pooling，softmax产出分数。
+
+-  P_s和P_t分别乘对应的最终搜索兴趣表征vs和推荐兴趣表征vr。生成最终兴趣表示emb.
+
+  关于vs和vr的方案
+
+  1）参照UniSAR方式，位置编码改时间差diff。
+
+  2）历史行为序列，两层attention，self-attention后分别用target_item 和 最近搜索行为 做target_atten。
+
+- 对target_item和最近的搜索行为做交叉。
+
+**疑问**：关于最近的搜索行为表示，是否加query_emb，UniSAR在对比loss的sim（a,b）函数用的tanh(aWb^T)方式,query和item的emb可能需要空间转换。但是行为序列中搜索行为用了E_query+Mean(E_i)表示//query_emb+query下点击item mean_pooling.
+
+推荐行为只有E_item，这种方式是否会导致行为序列上，搜索和推荐的表示不一致问题。query和item的emb如果存在空间转换，这样加是否会引入噪声？
+
+#### 公开数据集分析 @zhijian
+
+- 目前数据集: 快手KuaiSAR，美团MT-Small，Amazon（Kindle）
+- 美团和亚马逊数据集在item侧特征非常少，找不到推荐 & 搜索序列的共现信息
+- 快手KuaiSAR
+  - 用户维度做聚合，当前搜索序列 前的推荐序列，时间阈值为1/3/14天的有相同一级类目用户数为26%，40%，60%，
+
+​                 ○ 用户维度做聚合，当前搜索序列 前的推荐序列，时间阈值为1/3/14天的有相同二级类目用户数为24%，35%，52%
+
+​                 ○ 用户维度做聚合，当前推荐序列 前的搜索序列，时间阈值为1/3/14天的有相同一级类目用户数为24%，32%，37%
+
+​                 ○ 用户维度做聚合，当前推荐序列 前的搜索序列，时间阈值为1/3/14天的有相同二级类目用户数为20%，30%，35%
+
+​                 ○ 推荐数据集点击率50%，搜索数据集点击率11%（搜索下的视频会自动播放，所以点击率会偏低）
 
 
 # related work：
@@ -11,7 +68,7 @@
 - SESRec [When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation](https://arxiv.org/abs/2305.10822)
 - [Unified Dual-Intent Translation for Joint Modeling of Search and Recommendation](https://arxiv.org/pdf/2407.00912)--
 
-# When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation-2023
+# SESRec When Search Meets Recommendation: Learning Disentangled Search Representation for Recommendation-2023
 - 1）intro：当前做搜推数据结合一起的方法很少，有的也是把数据在一起使用，忽略了两个场景的用户意图不一样。SESRec利用搜索增强推荐场景效果。方法：1）把相似和不相似的用户意图表征解耦 2）把query和item embedding对齐，方便处理query作为用户意图。3）最终得到相似意图，不相似意图，上下文意图三个用户兴趣。. In our paper, we propose a Search-Enhanced framework for the Sequential Recommendation (SESRec) that leverages users’ search interests for recommendation, by disentangling similar and dissimilar representations within S&R behaviors. Specifically, SESRec first
 aligns query and item embeddings based on users’ query-item interactions for the computations of their similarities. Two transformer
 encoders are used to learn the contextual representations of S&R
@@ -21,10 +78,11 @@ user interests by the attention mechanism from three perspectives,
 i.e., the contextual representations, the two separated behaviors
 containing similar and dissimilar interests.
 - 2）具体来说，为了解决推荐和搜索行为中的相似兴趣和不相似兴趣，建立搜索序列和推荐序列的相似度矩阵affinity matrix。然后根据这个矩阵的得分，对搜索（推荐）序列提取出来和对方相似的序列p和不相似的序列n，这样搜索（推荐序列）可以分解为3个序列，原始序列，相似序列，不相似序列。 对于6各序列使用target attention。对于搜索序列的处理，使用query和item对比学习，映射到同一个空间。
-- 
+<img width="500" alt="image" src="https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/img/IMG_8218.jpeg">
+
+
 # 2024 UDITSR-对于推荐的每一次交互生成虚拟的query
 对于推荐的每一次交互生成虚拟的query，然后再搜推场景上对于user-query-item这样的三元图，进行类似transE一样的训练。美团，理论完备，实验对比不充分（只有2个属于同领域工作，但是这两个还比较古老），效果提升只有1%。
-
  <img width="500" alt="image" src="https://github.com/user-attachments/assets/857114ab-628c-433e-9b2e-ceac93228b41">
 
   
