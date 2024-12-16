@@ -490,4 +490,30 @@ ciao数据集：
 - 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
 
 
+# 8 meeting 20241203
+
+## 1 社交&行为-wanglin，wangweisong：
+- 本次进展：论文投稿完成；
+- 下次预期：1）补充interest alignment部分实验。之后考虑撰写长论文。
+- 文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+- 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。2）对两个兴趣进行融合
+
+## 2 搜索&推荐-
+- 本次进展：
+- 下次预期：xiangyuan,和瑞雪，xuanji制定最终设计方案。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md）
+
+## 3 多模态&行为-changqing,chucheng
+- 本次：
+- 下次： 重新梳理方案，按照extract-alignment&diversity-fusion方案制定大框架。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 本次：1）模型正常训练
+- 下次：继续调优效果。
+- 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md)
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）中间使用
+
+
 
