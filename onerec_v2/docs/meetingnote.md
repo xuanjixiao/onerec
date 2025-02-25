@@ -1,4 +1,25 @@
 
+# 8 meeting 20250211
+
+## 1 社交&行为-wanglin，wangweisong：
+- 进展：下月投稿sigir
+- 文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+- 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。2）对两个兴趣进行融合
+
+## 2 搜索&推荐
+- 进展：下月xiangyuan完成新规划，最终定稿。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md）
+
+## 3 多模态&行为-changqing,chucheng
+- 进展： extract-alignment&diversity-fusion，第二次规划完成； 下次完成最终方案敲定
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 进展：本月增加一些trick继续优化；下月着手撰写论文，预期3月份完成初版。
+- 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md) 2)https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+  
 
 # 8 meeting 20250109
 
