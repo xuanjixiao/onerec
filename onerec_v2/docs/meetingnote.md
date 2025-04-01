@@ -1,3 +1,29 @@
+# meeting 20250401
+
+## 1 社交&行为-wanglin，wangweisong：
+- 进展：本次：1）王林和weisong确立长文的实验分工；2）修改之前的对比学习那块的代码错误；3）再加一个重构的item图；下次：跑初步实验；长文所需的更多实验：消融？最后的融合部分实验？。
+- 文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+- 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。2）对两个兴趣进行融合
+
+## 2 搜索&推荐 @xiangyuan@ruixue@孝舒
+- 进展：1）新算法方案详设完成，见：https://docs.qq.com/doc/DZE9kVWRGRGZVbm5w?scene=6a9f854f7b622a469abf69f0v7Jkt1  2）query和行为序列融合方法：使用query对序列进行attention，然后结果和query合并，作为一个增强的query。下次：a)完成分工，并着手开发 b)check孝舒详设部分的细节调研结果
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md） 详设见：https://docs.qq.com/doc/DZE9kVWRGRGZVbm5w?scene=6a9f854f7b622a469abf69f0v7Jkt1
+
+## 3 多模态&行为-changqing,chucheng
+- 进展： 1）算法方案详设见：https://docs.qq.com/doc/DRW9WcnlkUEpDclhk，并完成分工。 b)如何进行兴趣解耦的矩阵分解方法，参考文档：Aligned Side Information Fusion Method for Sequential Recommendation  下次：完成初版代码开发
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)  详设见：https://docs.qq.com/doc/DRW9WcnlkUEpDclhk
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 进展：写完metrology的中文部分，文豪过了一遍没问题可以搬到overleaf上。 下次：迁移到overleaf的latex版本，尽量完成英文机器翻译。
+- 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md) 2)https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+  
+
+
+
+
+
 # meeting 20250304
 
 ## 1 社交&行为-wanglin，wangweisong：
