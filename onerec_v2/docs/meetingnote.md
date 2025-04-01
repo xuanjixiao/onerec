@@ -14,14 +14,10 @@
 - 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)  详设见：https://docs.qq.com/doc/DRW9WcnlkUEpDclhk
 
 ## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
-- 进展：写完metrology的中文部分，文豪过了一遍没问题可以搬到overleaf上。 下次：迁移到overleaf的latex版本，尽量完成英文机器翻译。
+- 进展：论文写完metrology的中文部分，文豪过了一遍没问题可以搬到overleaf上。 下次：迁移到overleaf的latex版本，尽量完成英文机器翻译。
 - 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
 - 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md) 2)https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
 - 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
-  
-
-
-
 
 
 # meeting 20250304
