@@ -67,7 +67,7 @@ class DRAGON(GeneralRecommender):
         self.use_transformer = False
 
         # add item_feature
-        use_item_feature = True
+        use_item_feature = False
         self.i_feat = None
         self.i_rep = None
         self.i_preference = None
@@ -539,6 +539,7 @@ class GEGLU(torch.nn.Module):
 def gelu_impl(x):
     """OpenAI's gelu implementation."""
     return 0.5 * x * (1.0 + torch.tanh(0.7978845608028654 * x *
+                                       (1.0 + 0.044715 * x * x)))
 
 def gelu(x):
     return gelu_impl(x)
