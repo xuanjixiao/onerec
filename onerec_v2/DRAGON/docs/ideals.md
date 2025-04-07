@@ -1,6 +1,25 @@
 
 # 多模态推荐创新点梳理
- 
+## 20241113会议纪要
+### 增加图文与item embedding对齐的效果对比
+baseline：
+![image](./imgs/dragon_baseline.png)
+使用图文与item 对齐的实验结果
+![image](./imgs/改进点1实验.png)
+改进点：1）额外增加item embedding的表示；2）增加图、文的embedding与item embedding对齐的loss，目前的loss为MSE
+实验结论：在recall@5，recall@10及NDCG@5均是有效果的，说明改进方案排序更加精准
+### 实验点改进
+
+- 在图、文embedding与item 对齐的embedding时，尝试其他loss，比如coSent loss
+- 新增准确率的评估指标
+- 细化图文多样性的loss的方案
+
+### 方案改进:
+item embedding前置，上一个实验是另外增加item的embedding, 从0开始学习，计划改成user与item交叉的item embedding作为align的对齐标准，因为交叉前的embedding比学习更充分\
+前后对比方法：
+![image](./imgs/改进方案20241116.png)
+
+
 ## 20240822
 ### 初步达成一致的优化点
 #### 1.样本抽样优化
