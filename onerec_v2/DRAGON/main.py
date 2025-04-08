@@ -1,6 +1,5 @@
 # coding: utf-8
 
-
 """
 Main entry
 # UPDATED: 2022-Feb-15
@@ -35,4 +34,4 @@ if __name__ == '__main__':
     quick_start(model=args.model, dataset=args.dataset, config_dict=config_dict, save_model=True)
 
 
-# nohup python main.py --dataset baby >log/chuchub_log.log &
+# nohup python main.py --dataset baby >log/test.log 2>1& &

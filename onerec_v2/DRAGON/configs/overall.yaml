@@ -4,7 +4,7 @@ use_gpu: True
 seed: [999]
 
 # multi-modal raw features
-data_path: '../../workspace_data/DRAGON/data/'
+data_path: '../../../../../../workspace_data/DRAGON/data/'
 # data_path: './data/'
 inter_splitting_label: 'x_label'
 filter_out_cod_start_users: True
@@ -39,7 +39,7 @@ field_separator: "\t"
 
 # evaluation settings
 metrics: ["Recall", "NDCG", "Precision", "MAP"]
-topk: [5, 10, 20, 50]
+topk: [1, 3, 5, 10, 20, 50]
 valid_metric: Recall@20
 eval_batch_size: 4096
 
