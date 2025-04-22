@@ -74,8 +74,8 @@ motivation是有些用户没有行为，那么只能用他的朋友的embedding�
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/6cbe77d1-29a3-4ec0-875d-7d9730b255c0">
 
 ## 参考文章
-[3] Yang Y, Wu L, Wang Z, et al. Graph bottlenecked social recommendation[C]//Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining. 2024: 3853-3862.
-[7] Yuhan Quan, Jingtao Ding, Chen Gao, Lingling Yi, Depeng Jin, and Yong Li. 2023. Robust Preference-Guided Denoising for Graph based Social Recommendation. In Proceedings of the ACM Web Conference 2023. 1097–1108.
-[6] Ye Tao, Ying Li, Su Zhang, Zhirong Hou, and Zhonghai Wu. 2022. Revisiting Graph based Social Recommendation: A Distillation Enhanced Social Graph Network. In Proceedings of the ACM Web Conference 2022. 2830–2838.
-[4] Wu J, Fan W, Chen J, et al. Disentangled contrastive learning for social recommendation[C]//Proceedings of the 31st ACM international conference on information & knowledge management. 2022: 4570-4574.
+[3] Yang Y, Wu L, Wang Z, et al. Graph bottlenecked social recommendation[C]//Proceedings of the 30th ACM SIGKDD Conference on Knowledge Discovery and Data Mining. 2024: 3853-3862.  
+[7] Yuhan Quan, Jingtao Ding, Chen Gao, Lingling Yi, Depeng Jin, and Yong Li. 2023. Robust Preference-Guided Denoising for Graph based Social Recommendation. In Proceedings of the ACM Web Conference 2023. 1097–1108.  
+[6] Ye Tao, Ying Li, Su Zhang, Zhirong Hou, and Zhonghai Wu. 2022. Revisiting Graph based Social Recommendation: A Distillation Enhanced Social Graph Network. In Proceedings of the ACM Web Conference 2022. 2830–2838.  
+[4] Wu J, Fan W, Chen J, et al. Disentangled contrastive learning for social recommendation[C]//Proceedings of the 31st ACM international conference on information & knowledge management. 2022: 4570-4574.  
 [2] Yu J, Yin H, Xia X, et al. Are graph augmentations necessary? simple graph contrastive learning for recommendation[C]//Proceedings of the 45th international ACM SIGIR conference on research and development in information retrieval. 2022: 1294-1303.
