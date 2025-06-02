@@ -280,37 +280,52 @@ class DRAGON(GeneralRecommender):
         v_rep = self.v_rep[self.num_user:]
         t_rep = self.t_rep[self.num_user:]
 
-        self.v_rep = torch.unsqueeze(self.v_rep, 2)
-        self.t_rep = torch.unsqueeze(self.t_rep, 2)
+        # self.v_rep = torch.unsqueeze(self.v_rep, 2)
+        # self.t_rep = torch.unsqueeze(self.t_rep, 2)
         # print("v_rep.shape.", self.v_rep[:self.num_user].shape, self.t_rep[:self.num_user].shape)
         # print("weight_u.shape.", self.weight_u.shape)
 
-        user_rep = torch.matmul(torch.cat((self.v_rep[:self.num_user], self.t_rep[:self.num_user]), dim=2),
-                                self.weight_u)
-        user_rep = torch.squeeze(user_rep)
+       
         # user_rep = torch.matmul(torch.cat((self.v_rep[:self.num_user], self.t_rep[:self.num_user]), dim=2), self.weight_u)
         # user_rep = torch.squeeze(user_rep)
 
-        # ****************** 多模态对齐（同质信息和多样性信息分离）******************
-        homogen_v_rep = self.ffn(v_rep)
-        homogen_t_rep = self.ffn(t_rep)
-
-        diff_v_rep = v_rep - homogen_v_rep
-        diff_t_rep = t_rep - homogen_t_rep
-
-        diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
-        diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
-
-
         ############################################ multi-modal information aggregation
+        """
+        h = item_rep
+        # print('device:', self.mm_adj.device, h.device)  # 输出：cpu
+
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, h)
+        h_u1 = self.user_graph(user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        user_rep = user_rep + h_u1
+        item_rep = item_rep + h
+        """
         # ****************** 同质信息的处理， 实验中可以放开这部分 ******************
         # h = (homogen_v_rep + homogen_t_rep) / 2
         # # print('device:', self.mm_adj.device, h.device)  # 输出：cpu
-        # for i in range(self.n_layers):
-        #     h = torch.sparse.mm(self.mm_adj, h)
-        # h_u1 = self.user_graph(user_rep, self.epoch_user_graph, self.user_weight_matrix)
-        # user_rep = user_rep + h_u1
-        # item_rep = item_rep + h
+        t_h = t_rep
+        t_user_rep = self.t_rep[:self.num_user]
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, t_h)
+        h_u1 = self.user_graph(t_user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        t_user_rep = t_user_rep + h_u1
+        t_item_rep = t_h + h
+
+        v_h = v_rep
+        v_user_rep = self.v_rep[:self.num_user]
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, v_h)
+        # user_matrix.shape torch.Size([19445, 1, 40]), u_features.shape. torch.Size([19445, 40, 64, 1]) 
+        # ok: user_matrix: torch.Size([19445, 1, 40]) u_features.shape. torch.Size([19445, 40, 128]) 
+        h_u1 = self.user_graph(v_user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        v_user_rep = v_user_rep + h_u1
+        v_item_rep = v_h + h
+
+        t_user_rep = torch.unsqueeze(t_user_rep, 2)
+        v_user_rep = torch.unsqueeze(v_user_rep, 2)
+        user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
+        user_rep = torch.squeeze(user_rep)
+
         # # print("user_rep", user_rep.shape, user_rep.dtype, item_rep.shape, item_rep.dtype)
         # self.result_embed = torch.cat((user_rep, item_rep), dim=0)
         # # self.result_embed = nn.Parameter(torch.cat((user_rep, item_rep), dim=0))
@@ -319,6 +334,16 @@ class DRAGON(GeneralRecommender):
         # neg_item_tensor = self.result_embed[neg_item_nodes]
         # pos_scores = torch.sum(user_tensor * pos_item_tensor, dim=1)
         # neg_scores = torch.sum(user_tensor * neg_item_tensor, dim=1)
+        
+        # ****************** 多模态对齐（同质信息和多样性信息分离）******************
+        homogen_t_rep = self.ffn(t_item_rep)
+        homogen_v_rep = self.ffn(v_item_rep)
+
+        diff_v_rep = v_rep - homogen_v_rep
+        diff_t_rep = t_rep - homogen_t_rep
+
+        diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
+        diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
 
         item_rep = (homogen_v_rep + homogen_t_rep) / 2
         self.result_embed = torch.cat((user_rep, item_rep), dim=0)
@@ -431,9 +456,10 @@ class User_Graph_sample(torch.nn.Module):
     def forward(self, features, user_graph, user_matrix):
         index = user_graph
         u_features = features[index]
-        # print("u_features.shape.", u_features.shape)
         user_matrix = user_matrix.unsqueeze(1)
         # pdb.set_trace()
+        # print("user_matrix.shape", user_matrix.shape, "u_features.shape.", u_features.shape,)
+
         u_pre = torch.matmul(user_matrix,u_features)
 
         # print("u_pre.shape.", u_pre.shape)
