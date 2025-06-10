@@ -1,3 +1,24 @@
+# meeting 20250610
+
+## 1 社交&行为-wanglin，wangweisong：
+- 进展：本次：短文投递完成。下次：是否做长文内容扩充？利用社交重构的user2item图方案完成设计，效果不佳。 
+- 文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md) 和 [详细设计文档](https://github.com/xuanjixiao/onerec/tree/onerecv2/onerec_v2/docs/social4rec), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+- 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。2）对两个兴趣进行融合
+
+## 2 搜索&推荐 @xiangyuan@ruixue@孝舒
+- 进展：本次：完成分工，xiangyuan和瑞雪着手开发对应模块。下次：单独约会对齐各个模块进度。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md） 详设见：https://docs.qq.com/doc/DZE9kVWRGRGZVbm5w?scene=6a9f854f7b622a469abf69f0v7Jkt1
+
+## 3 多模态&行为-changqing,chucheng
+- 进展。本次： 1）去掉dragon效果下降较多；完成效果优化方案讨论，见doc。 下次：2）三个实验效果回收：a)保留dragon语义部分的网络结构 b)稀疏数据集效果 c)图文对比的loss优化实验
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)  详设见：https://docs.qq.com/doc/DRW9WcnlkUEpDclhk
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 进展：论文投递cikm完成
+- 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md) 2)https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+
 # meeting 20250513
 
 ## 1 社交&行为-wanglin，wangweisong：
