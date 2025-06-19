@@ -1,7 +1,29 @@
 # meeting 20250610
 
 ## 1 社交&行为-wanglin，wangweisong：
-- 进展：本次：短文投递完成。下次：是否做长文内容扩充？利用社交重构的user2item图方案完成设计，效果不佳。 
+- 进展：本次：短文投递完成。
+- 下次：**(1) 改进 U-U-I 图的构建:**
+	* 先计算两个用户之间 $\frac{共同好友数}{所有好友数}$ 分数，为每一个社交关系打分，分数越高说明越相似，越低则说明越不相似，可以通过设置分数阈值去掉一些低质量边（通常是明星和粉丝之间的关系），用剩下的比较高质量的社交关系重构一个 U-U-I 的图
+	* 通过计算item 和 user 之间在图中的路径数量，选出路径数量最多的 item 作为 U-U-I 中与用户交互的 item
+
+	**(2) 实验对比算法（可选）**
+  
+  	[1]Junliang Yu, Hongzhi Yin, Jundong Li, Min Gao, Zi Huang, and Lizhen Cui. Enhancing social recommendation with adversarial graph convolutional networks. IEEE TKDE 34, 8 (2020), 3727–3739.  [paper](https://arxiv.org/pdf/2004.02340)  
+  	[2]Yuhan Quan, Jingtao Ding, Chen Gao, Lingling Yi, Depeng Jin, and Yong Li. Robust Preference-Guided Denoising for Graph based Social Recommendation. WWW 2023. 1097–1108.  [paper](https://dl.acm.org/doi/pdf/10.1145/3543507.3583374)  
+  	[3]Yang Y, Wu L, Wang Z, et al. Graph bottlenecked social recommendation.  ACM SIGKDD. 2024: 3853-3862.  [paper](https://arxiv.org/pdf/2406.08214)  
+
+	**(4)实验**  
+  	实验部分需要着重探索一下，用户的Relation Density，以及 Interaction Density 对实验结果的影响，可以通过设置 Density 的阈值，筛选出最稀疏的前 5%，10%，15% 的用户，对他们进行对比损失计算，观察对模型性能的影响
+
+	**(3) 数据集**
+  
+| Dataset      | Users  | Items   | Inter    | Relation | Density   |
+|--------------|--------|---------|----------|----------|-----------|
+| LastFM       | 1,892  | 17,632  | 92,834   | 25,434   | 0.278%    |
+| Ciao         | 7,375  | 105,114 | 284,086  | 53,152   | 0.0366%   |
+| Yelp         | 16,239 | 14,284  | 169,986  | 158,590  | 0.0732%   |
+| Douban-Book  | 13,024 | 22,347  | 792,062  | 169,150  | 0.272%    | 
+
 - 文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md) 和 [详细设计文档](https://github.com/xuanjixiao/onerec/tree/onerecv2/onerec_v2/docs/social4rec), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
 - 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。2）对两个兴趣进行融合
 
