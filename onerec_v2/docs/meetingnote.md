@@ -12,10 +12,10 @@
   	[2]Yuhan Quan, Jingtao Ding, Chen Gao, Lingling Yi, Depeng Jin, and Yong Li. Robust Preference-Guided Denoising for Graph based Social Recommendation. WWW 2023. 1097–1108.  [paper](https://dl.acm.org/doi/pdf/10.1145/3543507.3583374)  
   	[3]Yang Y, Wu L, Wang Z, et al. Graph bottlenecked social recommendation.  ACM SIGKDD. 2024: 3853-3862.  [paper](https://arxiv.org/pdf/2406.08214)  
 
-	**(4)实验**  
+	**(3)实验**  
   	实验部分需要着重探索一下，用户的Relation Density，以及 Interaction Density 对实验结果的影响，可以通过设置 Density 的阈值，筛选出最稀疏的前 5%，10%，15% 的用户，对他们进行对比损失计算，观察对模型性能的影响
 
-	**(3) 数据集**
+	**(4) 数据集**
   
 | Dataset      | Users  | Items   | Inter    | Relation | Density   |
 |--------------|--------|---------|----------|----------|-----------|
