@@ -35,6 +35,7 @@ class DRAGON(GeneralRecommender):
         self.knn_k = config['knn_k']
         self.mm_image_weight = config['mm_image_weight']
 
+        self.homoge_weight = config['homoge_weight']
         has_id = True
 
         self.batch_size = batch_size
@@ -57,22 +58,8 @@ class DRAGON(GeneralRecommender):
         self.t_preference = None
         self.dim_latent = 64
         self.dim_feat = 128
-        self.MLP_v = nn.Linear(self.dim_latent, self.dim_latent, bias=False)
-        self.MLP_t = nn.Linear(self.dim_latent, self.dim_latent, bias=False)
+
         self.mm_adj = None
-
-        # 实验新增参数
-        self.modal_merge = False  # 先以其他实验为主
-        self.trans_num_layer = 2
-        self.use_transformer = False
-
-        # add item_feature
-        use_item_feature = False
-        self.i_feat = None
-        self.i_rep = None
-        self.i_preference = None
-        self.need_detail = True
-        self.step_num = 0
 
         dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
         self.user_graph_dict = np.load(os.path.join(dataset_path, config['user_graph_dict_file']),
@@ -82,16 +69,10 @@ class DRAGON(GeneralRecommender):
 
         if self.v_feat is not None:
             self.image_embedding = nn.Embedding.from_pretrained(self.v_feat, freeze=False)
-            self.image_trs = nn.Linear(self.v_feat.shape[1], self.feat_embed_dim)
+            # self.image_trs = nn.Linear(self.v_feat.shape[1], self.feat_embed_dim)
         if self.t_feat is not None:
             self.text_embedding = nn.Embedding.from_pretrained(self.t_feat, freeze=False)
-            self.text_trs = nn.Linear(self.t_feat.shape[1], self.feat_embed_dim)
-
-        # 增加item 表征
-        if use_item_feature:
-            self.i_feat = nn.Parameter(nn.init.xavier_normal_(torch.tensor(
-                np.random.randn(num_item, self.dim_latent), dtype=torch.float32, requires_grad=True),
-                gain=1).to(self.device))
+            # self.text_trs = nn.Linear(self.t_feat.shape[1], self.feat_embed_dim)
 
         if os.path.exists(mm_adj_file):
             self.mm_adj = torch.load(mm_adj_file)
@@ -123,23 +104,13 @@ class DRAGON(GeneralRecommender):
         # print("self.edge_index.cat", self.edge_index.shape)
 
         # pdb.set_trace()
-        if self.i_feat is not None:
-            self.weight_u = nn.Parameter(nn.init.xavier_normal_(
-                torch.tensor(np.random.randn(self.num_user, 3, 1), dtype=torch.float32, requires_grad=True)))
-            self.weight_u.data = F.softmax(self.weight_u, dim=1)
+        self.weight_u = nn.Parameter(nn.init.xavier_normal_(
+            torch.tensor(np.random.randn(self.num_user, 2, 1), dtype=torch.float32, requires_grad=True)))
+        self.weight_u.data = F.softmax(self.weight_u, dim=1)
 
-            self.weight_i = nn.Parameter(nn.init.xavier_normal_(
-                torch.tensor(np.random.randn(self.num_item, 3, 1), dtype=torch.float32, requires_grad=True)))
-            self.weight_i.data = F.softmax(self.weight_i, dim=1)
-
-        else:
-            self.weight_u = nn.Parameter(nn.init.xavier_normal_(
-                torch.tensor(np.random.randn(self.num_user, 2, 1), dtype=torch.float32, requires_grad=True)))
-            self.weight_u.data = F.softmax(self.weight_u, dim=1)
-
-            self.weight_i = nn.Parameter(nn.init.xavier_normal_(
-                torch.tensor(np.random.randn(self.num_item, 2, 1), dtype=torch.float32, requires_grad=True)))
-            self.weight_i.data = F.softmax(self.weight_i, dim=1)
+        self.weight_i = nn.Parameter(nn.init.xavier_normal_(
+            torch.tensor(np.random.randn(self.num_item, 2, 1), dtype=torch.float32, requires_grad=True)))
+        self.weight_i.data = F.softmax(self.weight_i, dim=1)
 
         self.item_index = torch.zeros([self.num_item], dtype=torch.long)
         index = []
@@ -304,22 +275,25 @@ class DRAGON(GeneralRecommender):
         # h = (homogen_v_rep + homogen_t_rep) / 2
         # # print('device:', self.mm_adj.device, h.device)  # 输出：cpu
         t_h = t_rep
-        t_user_rep = self.t_rep[:self.num_user]
         for i in range(self.n_layers):
             h = torch.sparse.mm(self.mm_adj, t_h)
-        h_u1 = self.user_graph(t_user_rep, self.epoch_user_graph, self.user_weight_matrix)
-        t_user_rep = t_user_rep + h_u1
         t_item_rep = t_h + h
 
+        t_user_rep = self.t_rep[:self.num_user]
+        h_u1 = self.user_graph(t_user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        t_user_rep = t_user_rep + h_u1
+
+
         v_h = v_rep
-        v_user_rep = self.v_rep[:self.num_user]
         for i in range(self.n_layers):
             h = torch.sparse.mm(self.mm_adj, v_h)
+        v_item_rep = v_h + h
+
         # user_matrix.shape torch.Size([19445, 1, 40]), u_features.shape. torch.Size([19445, 40, 64, 1]) 
         # ok: user_matrix: torch.Size([19445, 1, 40]) u_features.shape. torch.Size([19445, 40, 128]) 
+        v_user_rep = self.v_rep[:self.num_user]
         h_u1 = self.user_graph(v_user_rep, self.epoch_user_graph, self.user_weight_matrix)
         v_user_rep = v_user_rep + h_u1
-        v_item_rep = v_h + h
 
         t_user_rep = torch.unsqueeze(t_user_rep, 2)
         v_user_rep = torch.unsqueeze(v_user_rep, 2)
@@ -379,6 +353,10 @@ class DRAGON(GeneralRecommender):
 
         pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
         neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
+
+        # pos_scores = torch.sum(F.cosine_similarity(user_tensor, pos_item_rep), dim=1)
+        # neg_scores = torch.sum(F.cosine_similarity(user_tensor, neg_item_rep), dim=1)
+
         return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
 
     def calculate_loss(self, interaction):
@@ -394,7 +372,7 @@ class DRAGON(GeneralRecommender):
 
         reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
 
-        homoge_loss = F.mse_loss(homogen_t_rep, homogen_v_rep)
+        homoge_loss = self.homoge_weight * F.mse_loss(homogen_t_rep, homogen_v_rep)
         return loss_value + reg_loss + homoge_loss
 
 
