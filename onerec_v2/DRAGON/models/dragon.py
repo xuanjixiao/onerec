@@ -351,11 +351,11 @@ class DRAGON(GeneralRecommender):
         k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
         neg_item_rep = QKV(user_tensor, k_list)
 
-        # pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
-        # neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
+        pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
+        neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
 
-        pos_scores = torch.sum(F.cosine_similarity(user_tensor, pos_item_rep), dim=1)
-        neg_scores = torch.sum(F.cosine_similarity(user_tensor, neg_item_rep), dim=1)
+        # pos_scores = torch.sum(F.cosine_similarity(user_tensor, pos_item_rep), dim=1)
+        # neg_scores = torch.sum(F.cosine_similarity(user_tensor, neg_item_rep), dim=1)
 
         return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
 
