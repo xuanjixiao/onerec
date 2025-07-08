@@ -20,7 +20,7 @@ from common.init import xavier_uniform_initialization
 import math
 from typing import Optional, Tuple, Union, List, Callable, Dict, Any
 from torch.nn import LayerNorm
-
+import pdb
 
 class DRAGON(GeneralRecommender):
     def __init__(self, config, dataset):
@@ -310,27 +310,35 @@ class DRAGON(GeneralRecommender):
         # neg_scores = torch.sum(user_tensor * neg_item_tensor, dim=1)
         
         # ****************** 多模态对齐（同质信息和多样性信息分离）******************
-        homogen_t_rep = self.ffn(t_item_rep)
-        homogen_v_rep = self.ffn(v_item_rep)
+        # homogen_t_rep = self.ffn(t_item_rep)
+        # homogen_v_rep = self.ffn(v_item_rep)
 
-        diff_v_rep = v_rep - homogen_v_rep
-        diff_t_rep = t_rep - homogen_t_rep
+        # diff_v_rep = v_rep - homogen_v_rep
+        # diff_t_rep = t_rep - homogen_t_rep
 
-        diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
-        diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
+        # diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
+        # diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
 
-        item_rep = (homogen_v_rep + homogen_t_rep) / 2
+        # item_rep = (homogen_v_rep + homogen_t_rep) / 2
+        item_rep = (v_rep + t_rep)/2
         self.result_embed = torch.cat((user_rep, item_rep), dim=0)
 
         user_tensor = self.result_embed[user_nodes]
         pos_item_tensor = self.result_embed[pos_item_nodes]
         neg_item_tensor = self.result_embed[neg_item_nodes]
 
-        diversity_v_embed_pos = torch.cat((user_rep, diversity_v_rep), dim=0)[pos_item_nodes]
-        diversity_t_embed_pos = torch.cat((user_rep, diversity_t_rep), dim=0)[pos_item_nodes]
+        # diversity_v_embed_pos = torch.cat((user_rep, diversity_v_rep), dim=0)[pos_item_nodes]
+        # diversity_t_embed_pos = torch.cat((user_rep, diversity_t_rep), dim=0)[pos_item_nodes]
 
-        diversity_v_embed_neg = torch.cat((user_rep, diversity_v_rep), dim=0)[neg_item_nodes]
-        diversity_t_embed_neg = torch.cat((user_rep, diversity_t_rep), dim=0)[neg_item_nodes]
+        # diversity_v_embed_neg = torch.cat((user_rep, diversity_v_rep), dim=0)[neg_item_nodes]
+        # diversity_t_embed_neg = torch.cat((user_rep, diversity_t_rep), dim=0)[neg_item_nodes]
+
+
+        diversity_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+
+        diversity_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
 
         def QKV(user_tensor, k_list):
             k_values_tensor = torch.stack(k_list)
@@ -345,24 +353,29 @@ class DRAGON(GeneralRecommender):
             final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
             return final_item_rep
 
+        # k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
+        # pos_item_rep = QKV(user_tensor, k_list)
+
+        # k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
+        # neg_item_rep = QKV(user_tensor, k_list)
         k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
         pos_item_rep = QKV(user_tensor, k_list)
 
         k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
         neg_item_rep = QKV(user_tensor, k_list)
-
         pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
         neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
 
         # pos_scores = torch.sum(F.cosine_similarity(user_tensor, pos_item_rep), dim=1)
         # neg_scores = torch.sum(F.cosine_similarity(user_tensor, neg_item_rep), dim=1)
 
-        return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
+        # return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
+        return pos_scores, neg_scores
 
     def calculate_loss(self, interaction):
         user = interaction[0]
-        pos_scores, neg_scores, homogen_t_rep, homogen_v_rep = self.forward(interaction)
-
+        # pos_scores, neg_scores, homogen_t_rep, homogen_v_rep = self.forward(interaction)
+        pos_scores, neg_scores = self.forward(interaction)
         loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
 
         reg_embedding_loss_v = (self.v_preference[user] ** 2).mean() if self.v_preference is not None else 0.0
@@ -372,8 +385,8 @@ class DRAGON(GeneralRecommender):
 
         reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
 
-        homoge_loss = self.homoge_weight * F.mse_loss(homogen_t_rep, homogen_v_rep)
-        return loss_value + reg_loss + homoge_loss
+        # homoge_loss = self.homoge_weight * F.mse_loss(homogen_t_rep, homogen_v_rep)
+        return loss_value + reg_loss #+ homoge_loss
 
 
     def full_sort_predict(self, interaction):
@@ -539,7 +552,7 @@ class GEGLU(torch.nn.Module):
 
 
 
-@torch.jit.script
+# @torch.jit.script
 def gelu_impl(x):
     """OpenAI's gelu implementation."""
     return 0.5 * x * (1.0 + torch.tanh(0.7978845608028654 * x *
