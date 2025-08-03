@@ -25,9 +25,6 @@ import pdb
 class DRAGON(GeneralRecommender):
     def __init__(self, config, dataset):
         super(DRAGON, self).__init__(config, dataset)
-        self.gate = nn.Sequential(
-            nn.Linear(128,64),
-            nn.Sigmoid())
         num_user = self.n_users
         num_item = self.n_items
         batch_size = config['train_batch_size']  # not used
@@ -48,7 +45,7 @@ class DRAGON(GeneralRecommender):
         self.num_layer = 1
         self.cold_start = 0
         self.dataset = dataset
-        self.mmd = MMDLoss()
+        self.mmd = MMDLoss(kernel_type='linear')
         # self.construction = 'weighted_max'
         # self.construction = 'weighted_sum'
         self.construction = 'cat'
@@ -328,10 +325,7 @@ class DRAGON(GeneralRecommender):
         t_rep_mlp = self.t_mlp(t_rep)
         v_rep = v_rep + v_rep_mlp
         t_rep = t_rep + t_rep_mlp
-        combined = torch.cat([v_rep, t_rep], dim=1)
-        gate_score = self.gate(combined)
-        item_rep = gate_score * v_rep + (1 - gate_score) * t_rep
-        # item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
+        item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
         # item_rep = v_rep + t_rep
         # pdb.set_trace()
         # item_rep = torch.cat([v_rep,t_rep],dim=1)
@@ -387,13 +381,8 @@ class DRAGON(GeneralRecommender):
         return pos_scores, neg_scores,t_rep, v_rep
 
     def v_t_align_loss(self,v_rep,t_rep):
-        def mmd_linear(t_rep, v_rep):
-            """线性时间MMD近似"""
-            mean_t = t_rep.mean(0)
-            mean_v = v_rep.mean(0)
-            mean_diff = (mean_t - mean_v).pow(2).sum()
-            return mean_diff
-        return mmd_linear(v_rep,t_rep)
+        loss = self.mmd(v_rep,t_rep)
+        return loss
 
     def calculate_loss(self, interaction):
         user = interaction[0]
