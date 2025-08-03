@@ -20,12 +20,14 @@ from common.init import xavier_uniform_initialization
 import math
 from typing import Optional, Tuple, Union, List, Callable, Dict, Any
 from torch.nn import LayerNorm
-
+import pdb
 
 class DRAGON(GeneralRecommender):
     def __init__(self, config, dataset):
         super(DRAGON, self).__init__(config, dataset)
-
+        self.gate = nn.Sequential(
+            nn.Linear(128,64),
+            nn.Sigmoid())
         num_user = self.n_users
         num_item = self.n_items
         batch_size = config['train_batch_size']  # not used
@@ -34,10 +36,9 @@ class DRAGON(GeneralRecommender):
         self.n_layers = config['n_mm_layers']
         self.knn_k = config['knn_k']
         self.mm_image_weight = config['mm_image_weight']
-
-        self.homoge_weight = config['homoge_weight']
+        self.v_weight = config['v_weight']
+        self.t_weight = 1 - self.v_weight
         has_id = True
-
         self.batch_size = batch_size
         self.num_user = num_user
         self.num_item = num_item
@@ -47,6 +48,7 @@ class DRAGON(GeneralRecommender):
         self.num_layer = 1
         self.cold_start = 0
         self.dataset = dataset
+        self.mmd = MMDLoss()
         # self.construction = 'weighted_max'
         # self.construction = 'weighted_sum'
         self.construction = 'cat'
@@ -183,9 +185,10 @@ class DRAGON(GeneralRecommender):
         self.ffn = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True, 
                        activation_func=gelu)
         
-        self.heterogeneous_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+        self.v_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
                                      bias=True, activation_func=gelu)
-        
+        self.t_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                                     bias=True, activation_func=gelu)
     def get_knn_adj_mat(self, mm_embeddings):
         context_norm = mm_embeddings.div(torch.norm(mm_embeddings, p=2, dim=-1, keepdim=True))
         # print("mm_embeddings.shape:", mm_embeddings.shape, "context_norm.shape", context_norm.shape)
@@ -299,7 +302,7 @@ class DRAGON(GeneralRecommender):
         v_user_rep = torch.unsqueeze(v_user_rep, 2)
         user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
         user_rep = torch.squeeze(user_rep)
-
+        # pdb.set_trace()
         # # print("user_rep", user_rep.shape, user_rep.dtype, item_rep.shape, item_rep.dtype)
         # self.result_embed = torch.cat((user_rep, item_rep), dim=0)
         # # self.result_embed = nn.Parameter(torch.cat((user_rep, item_rep), dim=0))
@@ -310,27 +313,46 @@ class DRAGON(GeneralRecommender):
         # neg_scores = torch.sum(user_tensor * neg_item_tensor, dim=1)
         
         # ****************** 多模态对齐（同质信息和多样性信息分离）******************
-        homogen_t_rep = self.ffn(t_item_rep)
-        homogen_v_rep = self.ffn(v_item_rep)
+        # homogen_t_rep = self.ffn(t_item_rep)
+        # homogen_v_rep = self.ffn(v_item_rep)
 
-        diff_v_rep = v_rep - homogen_v_rep
-        diff_t_rep = t_rep - homogen_t_rep
+        # diff_v_rep = v_rep - homogen_v_rep
+        # diff_t_rep = t_rep - homogen_t_rep
 
-        diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
-        diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
+        # diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
+        # diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
 
-        item_rep = (homogen_v_rep + homogen_t_rep) / 2
+        # item_rep = (homogen_v_rep + homogen_t_rep) / 2
+        # pdb.set_trace()
+        v_rep_mlp = self.v_mlp(v_rep)
+        t_rep_mlp = self.t_mlp(t_rep)
+        v_rep = v_rep + v_rep_mlp
+        t_rep = t_rep + t_rep_mlp
+        combined = torch.cat([v_rep, t_rep], dim=1)
+        gate_score = self.gate(combined)
+        item_rep = gate_score * v_rep + (1 - gate_score) * t_rep
+        # item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
+        # item_rep = v_rep + t_rep
+        # pdb.set_trace()
+        # item_rep = torch.cat([v_rep,t_rep],dim=1)
         self.result_embed = torch.cat((user_rep, item_rep), dim=0)
 
         user_tensor = self.result_embed[user_nodes]
         pos_item_tensor = self.result_embed[pos_item_nodes]
         neg_item_tensor = self.result_embed[neg_item_nodes]
 
-        diversity_v_embed_pos = torch.cat((user_rep, diversity_v_rep), dim=0)[pos_item_nodes]
-        diversity_t_embed_pos = torch.cat((user_rep, diversity_t_rep), dim=0)[pos_item_nodes]
+        # diversity_v_embed_pos = torch.cat((user_rep, diversity_v_rep), dim=0)[pos_item_nodes]
+        # diversity_t_embed_pos = torch.cat((user_rep, diversity_t_rep), dim=0)[pos_item_nodes]
 
-        diversity_v_embed_neg = torch.cat((user_rep, diversity_v_rep), dim=0)[neg_item_nodes]
-        diversity_t_embed_neg = torch.cat((user_rep, diversity_t_rep), dim=0)[neg_item_nodes]
+        # diversity_v_embed_neg = torch.cat((user_rep, diversity_v_rep), dim=0)[neg_item_nodes]
+        # diversity_t_embed_neg = torch.cat((user_rep, diversity_t_rep), dim=0)[neg_item_nodes]
+
+
+        diversity_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+
+        diversity_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
 
         def QKV(user_tensor, k_list):
             k_values_tensor = torch.stack(k_list)
@@ -345,24 +367,38 @@ class DRAGON(GeneralRecommender):
             final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
             return final_item_rep
 
+        # k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
+        # pos_item_rep = QKV(user_tensor, k_list)
+
+        # k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
+        # neg_item_rep = QKV(user_tensor, k_list)
         k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
         pos_item_rep = QKV(user_tensor, k_list)
 
         k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
         neg_item_rep = QKV(user_tensor, k_list)
-
         pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
         neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
 
         # pos_scores = torch.sum(F.cosine_similarity(user_tensor, pos_item_rep), dim=1)
         # neg_scores = torch.sum(F.cosine_similarity(user_tensor, neg_item_rep), dim=1)
 
-        return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
+        # return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
+        return pos_scores, neg_scores,t_rep, v_rep
+
+    def v_t_align_loss(self,v_rep,t_rep):
+        def mmd_linear(t_rep, v_rep):
+            """线性时间MMD近似"""
+            mean_t = t_rep.mean(0)
+            mean_v = v_rep.mean(0)
+            mean_diff = (mean_t - mean_v).pow(2).sum()
+            return mean_diff
+        return mmd_linear(v_rep,t_rep)
 
     def calculate_loss(self, interaction):
         user = interaction[0]
-        pos_scores, neg_scores, homogen_t_rep, homogen_v_rep = self.forward(interaction)
-
+        pos_scores, neg_scores, t_rep, v_rep = self.forward(interaction)
+        # pos_scores, neg_scores = self.forward(interaction)
         loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
 
         reg_embedding_loss_v = (self.v_preference[user] ** 2).mean() if self.v_preference is not None else 0.0
@@ -371,9 +407,9 @@ class DRAGON(GeneralRecommender):
         reg_loss = self.reg_weight * (reg_embedding_loss_v + reg_embedding_loss_t)
 
         reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
-
-        homoge_loss = self.homoge_weight * F.mse_loss(homogen_t_rep, homogen_v_rep)
-        return loss_value + reg_loss + homoge_loss
+        
+        #align_loss = self.v_t_align_loss(v_rep,t_rep)
+        return loss_value + reg_loss #+ align_loss
 
 
     def full_sort_predict(self, interaction):
@@ -485,7 +521,6 @@ class GCN(torch.nn.Module):
         x = F.normalize(x).to(self.device)
         h = self.conv_embed_1(x, edge_index)  # equation 1
         h_1 = self.conv_embed_1(h, edge_index)
-
         x_hat = h + x + h_1
         return x_hat, self.preference
 
@@ -539,7 +574,7 @@ class GEGLU(torch.nn.Module):
 
 
 
-@torch.jit.script
+# @torch.jit.script
 def gelu_impl(x):
     """OpenAI's gelu implementation."""
     return 0.5 * x * (1.0 + torch.tanh(0.7978845608028654 * x *
@@ -552,34 +587,81 @@ class FFN(torch.nn.Module):
     def __init__(self, hidden_size, inner_hidden_size=None,
                  bias=True, activation_func=gelu):
         super(FFN, self).__init__()
-        self.activation_func = activation_func
-        # Project to 4h.
         self.hidden_size = hidden_size
         if inner_hidden_size is None:
             inner_hidden_size = 4 * hidden_size
         self.inner_hidden_size = inner_hidden_size
-        self.dense_h_to_4h = torch.nn.Linear(
-            self.hidden_size,
-            self.inner_hidden_size,
-            bias=bias,
-        )
-        # Project back to h.
-        self.dense_4h_to_h = torch.nn.Linear(
-            self.inner_hidden_size,
-            self.hidden_size,
-            bias=bias,
+        self.layers = torch.nn.Sequential(
+            torch.nn.Linear(self.hidden_size, self.inner_hidden_size, bias=bias),
+            nn.GELU(),
+            torch.nn.Linear(self.inner_hidden_size, self.hidden_size, bias=bias),
+            nn.Dropout(0.3),
+            torch.nn.Linear(self.hidden_size, self.inner_hidden_size, bias=bias),
+            nn.GELU(),
+            torch.nn.Linear(self.inner_hidden_size, self.hidden_size, bias=bias)
         )
 
     def forward(self, hidden_states):
         """
-        hidden_states: [seq_len, batch, hidden_size]
+        hidden_states: [item_num,hidden_size]
         """
-
-        # [seq_len, batch, inner_hidden_size]
-        intermediate_parallel = self.dense_h_to_4h(hidden_states)
-
-        intermediate_parallel = self.activation_func(intermediate_parallel)
-
-        output = self.dense_4h_to_h(intermediate_parallel)
-
+        output = self.layers(hidden_states)
         return output
+
+
+class MMDLoss(nn.Module):
+    '''
+    计算源域数据和目标域数据的MMD距离
+    Params:
+    source: 源域数据（n * len(x))
+    target: 目标域数据（m * len(y))
+    kernel_mul:
+    kernel_num: 取不同高斯核的数量
+    fix_sigma: 不同高斯核的sigma值
+    Return:
+    loss: MMD loss
+    '''
+    def __init__(self, kernel_type='rbf', kernel_mul=2.0, kernel_num=5, fix_sigma=None, **kwargs):
+        super(MMDLoss, self).__init__()
+        self.kernel_num = kernel_num
+        self.kernel_mul = kernel_mul
+        self.fix_sigma = None
+        self.kernel_type = kernel_type
+
+    def guassian_kernel(self, source, target, kernel_mul, kernel_num, fix_sigma):
+        n_samples = int(source.size()[0]) + int(target.size()[0])
+        total = torch.cat([source, target], dim=0)
+        total0 = total.unsqueeze(0).expand(
+            int(total.size(0)), int(total.size(0)), int(total.size(1)))
+        total1 = total.unsqueeze(1).expand(
+            int(total.size(0)), int(total.size(0)), int(total.size(1)))
+        L2_distance = ((total0-total1)**2).sum(2)
+        if fix_sigma:
+            bandwidth = fix_sigma
+        else:
+            bandwidth = torch.sum(L2_distance.data) / (n_samples**2-n_samples)
+        bandwidth /= kernel_mul ** (kernel_num // 2)
+        bandwidth_list = [bandwidth * (kernel_mul**i)
+                          for i in range(kernel_num)]
+        kernel_val = [torch.exp(-L2_distance / bandwidth_temp)
+                      for bandwidth_temp in bandwidth_list]
+        return sum(kernel_val)
+
+    def linear_mmd2(self, f_of_X, f_of_Y):
+        loss = 0.0
+        delta = f_of_X.float().mean(0) - f_of_Y.float().mean(0)
+        loss = delta.dot(delta.T)
+        return loss
+
+    def forward(self, source, target):
+        if self.kernel_type == 'linear':
+            return self.linear_mmd2(source, target)
+        elif self.kernel_type == 'rbf':
+            batch_size = int(source.size()[0])
+            kernels = self.guassian_kernel(source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
+            XX = torch.mean(kernels[:batch_size, :batch_size])
+            YY = torch.mean(kernels[batch_size:, batch_size:])
+            XY = torch.mean(kernels[:batch_size, batch_size:])
+            YX = torch.mean(kernels[batch_size:, :batch_size])
+            loss = torch.mean(XX + YY - XY - YX)
+            return loss
