@@ -1,3 +1,59 @@
+# meeting 20250805
+
+## 1 社交&行为-wanglin，wangweisong：
+- 进展：中稿cikm，项目孵化结束.
+
+## 2 搜索&推荐 @xiangyuan@ruixue@孝舒
+- 进展：1）重新分工：
+- 	xiangyuan：query2item预训练部分开发。
+- 	zhijian：precise intent部分开发，Q1模块代表query1和它下边的所有item。
+- 	瑞雪负责search2rec fusion模块（初步开发完成）；待开发pre-trained embedding。
+- 下次：对齐开发进度。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md） 详设见：https://docs.qq.com/doc/DZE9kVWRGRGZVbm5w?scene=6a9f854f7b622a469abf69f0v7Jkt1
+
+## 3 多模态&行为-changqing,chucheng
+- 进展： mmd loss函数的物理解释，就是迁移学习的线性核。
+- 1）本次：稀疏数据集合上，实验效果recall超过sota 20%。待补充创新点：1）多样性信息建模，使用clip防止多样性信息里边噪声太大。2）mmd loss需要做不同batch实验，甚至单挑样本的均值对齐。
+- 2）下次；完成大部分“论文完整性实验”。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)  详设见：https://docs.qq.com/doc/DRW9WcnlkUEpDclhk
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 进展：论文未中，
+- 下次：结合review意见，进行修改。
+- 目前方案：
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md) 2)https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+
+
+
+
+# meeting 20250708
+
+## 1 社交&行为-wanglin，wangweisong：
+- 进展：1）长论文：重新制定了新的长论文改进规划，加入了几个算法改进点，对比算法，和消融实验的思路。
+- 下次：wanglin和weisong分工，对几个优花点分工进行一些开发。
+- 文档： 1） [readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_socia4rec.md) 和 [详细设计文档](https://github.com/xuanjixiao/onerec/tree/onerecv2/onerec_v2/docs/social4rec), 2）[overleaf doc](https://www.overleaf.com/read/vnzvthkwdhdn#70e5f4)
+- 方案简介：1）socialnetwork存在噪音和稀疏问题，我们使用svd方法进行去噪处理，然后得到的user embeding结果生成新的socialnetwrok图。新旧socialnetwork图通过contrastive learning方法学习，进行数据增强。2）对两个兴趣进行融合
+
+## 2 搜索&推荐 @xiangyuan@ruixue@孝舒
+- 进展：1）瑞雪负责的fusion模块开发基本完成，待check， 
+- 下次：1）和xiangyuan，瑞雪，zhijian完成模块分工。 
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md） 详设见：https://docs.qq.com/doc/DZE9kVWRGRGZVbm5w?scene=6a9f854f7b622a469abf69f0v7Jkt1
+
+## 3 多模态&行为-changqing,chucheng
+- 进展。
+- 1）本次： 3个实验实验结果回收，待和chuchun对齐结果：a)保留dragon语义部分的网络结构 b)稀疏数据集效果 c)图文对比的loss优化实验
+- 2）下次；效果讨论，并继续调优效果。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)  详设见：https://docs.qq.com/doc/DRW9WcnlkUEpDclhk
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 进展：论文投递cikm完成
+- 目前方案：强化学习选择哪个场景是用户容易成交的场景，在多场景学习的时候增大它的样本的权重。
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md) 2)https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+
+
+
 # meeting 20250708
 
 ## 1 社交&行为-wanglin，wangweisong：
