@@ -1,3 +1,27 @@
+# meeting 20250902
+
+## 1 社交&行为-wanglin，wangweisong：
+- 进展：中稿cikm，项目孵化结束.
+
+## 2 搜索&推荐 @xiangyuan@ruixue@孝舒
+- 进展：目前组员时间不充裕，跟大家沟通后，整体上hold，后续暂时不跟进。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_search_based_rec.md） 详设见：https://docs.qq.com/doc/DZE9kVWRGRGZVbm5w?scene=6a9f854f7b622a469abf69f0v7Jkt1
+
+## 3 多模态&行为-changqing,chucheng
+- 进展： mmd loss函数的物理解释，就是迁移学习的线性核。
+- 1）本次：目前进入实验收尾，和论文构思阶段，最近每个周日晚上20点会有例行周会。邀请下@王林-港理工-Social 参加。预期十月份完成论文撰写。
+- 2）下次；完成“全部论文实验”。
+- 文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_modal.md)  详设见：https://docs.qq.com/doc/DRW9WcnlkUEpDclhk
+
+## 4  multi-business-domain 跨业务域场景建模，直播，短视频，电商，社交，金融。-zhuoxi（hyperspace）/kexin（强化学习）/wenhao 
+- 进展：1）目前补充额外数据集实验中，准备投递wsdm @zhijian @wenhao 2）润色论文中的问题@xuanji。wsdm short abstract时间0911，deadline是0918.@zhijian 注意下时间。
+- 下次：投递wsdm完成。
+- 目前方案：
+- 参考文档：[readme page](https://github.com/xuanjixiao/onerec/blob/onerecv2/onerec_v2/docs/onerecv2_multi_domain.md) 2)https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+- 方案简介：1）使用域迁移，把domain1的u2u关系迁移到domain2，解决domain1的新用户问题。2）https://docs.qq.com/slide/DSlZER2RveldVU0lH?u=b31e65c3aeb343c69dc9b29b166b40c4
+
+
+
 # meeting 20250805
 
 ## 1 社交&行为-wanglin，wangweisong：
