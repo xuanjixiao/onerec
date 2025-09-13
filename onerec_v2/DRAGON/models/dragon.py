@@ -179,16 +179,35 @@ class DRAGON(GeneralRecommender):
 
         self.result_embed = nn.Parameter(
             nn.init.xavier_normal_(torch.tensor(np.random.randn(num_user + num_item, dim_x * 2)))).to(self.device)
-
-        # Project back to h.
-
-        self.ffn = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True, 
-                       activation_func=gelu)
         
-        self.v_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
-                                     bias=True, activation_func=gelu)
-        self.t_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
-                                     bias=True, activation_func=gelu)
+        self.num_blocks = config['res_block_num']  # 残差块的数量，可配置为超参数
+        # 创建多层映射网络
+        self.v_homo_blocks = nn.ModuleList()
+        self.t_homo_blocks = nn.ModuleList()
+        self.v_diver_blocks = nn.ModuleList()
+        self.t_diver_blocks = nn.ModuleList()
+
+        for _ in range(self.num_blocks):
+            # 视觉模态的映射层
+            self.v_homo_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            self.v_diver_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            
+            # 文本模态的映射层
+            self.t_homo_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            self.t_diver_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+
     def get_knn_adj_mat(self, mm_embeddings):
         context_norm = mm_embeddings.div(torch.norm(mm_embeddings, p=2, dim=-1, keepdim=True))
         # print("mm_embeddings.shape:", mm_embeddings.shape, "context_norm.shape", context_norm.shape)
@@ -225,10 +244,6 @@ class DRAGON(GeneralRecommender):
         rows_inv_sqrt = r_inv_sqrt[indices[0]]
         cols_inv_sqrt = r_inv_sqrt[indices[1]]
         values = rows_inv_sqrt * cols_inv_sqrt
-
-        # compute_normalized_laplacian.shape: torch.Size([2, 35250]) torch.Size([35250]) torch.Size([7050, 7050])
-        # print("compute_normalized_laplacian.shape:", adj.shape, indices.shape, values.shape, adj_size)
-
         return torch.sparse.FloatTensor(indices, values, adj_size)
 
     def pre_epoch_processing(self):
@@ -240,6 +255,56 @@ class DRAGON(GeneralRecommender):
         cols = inter_mat.col + self.n_users
         # ndarray([598918, 2]) for ml-imdb
         return np.column_stack((rows, cols))
+
+    def diversity_constraint(self, diver_rep):
+        """
+        对多样性信息进行数值约束，防止过大/过小
+        使用自适应梯度缩放技术，保持梯度流
+        """
+        # 1. 计算当前多样性信息的统计量
+        rep_mean = diver_rep.mean()
+        rep_std = diver_rep.std()
+        
+        # 2. 设置约束范围（可配置为超参数）
+        clip_range = 2.0  # 标准差倍数范围
+        
+        # 3. 自适应梯度缩放裁剪
+        # 核心思想：保持梯度流的同时约束数值范围
+        # 使用torch.where实现条件操作，保留梯度
+        clipped_rep = torch.where(
+            diver_rep > rep_mean + clip_range * rep_std,
+            rep_mean + clip_range * rep_std,
+            torch.where(
+                diver_rep < rep_mean - clip_range * rep_std,
+                rep_mean - clip_range * rep_std,
+                diver_rep
+            )
+        )
+        # 4. 保持原始梯度（梯度重定向）
+        # 使用技巧：将裁剪后的值作为常量加到原始值上，再减去原始值
+        # 这样既实现了裁剪，又保持了原始梯度
+        return diver_rep + (clipped_rep - diver_rep).detach()
+
+    def apply_resnet_blocks(self, rep, homo_blocks, diver_blocks):
+        """应用多层残差块，对多样性信息进行数值约束"""
+        residual = rep
+        for homo_layer, diver_layer in zip(homo_blocks, diver_blocks):
+            # 同质信息映射
+            homo_rep = homo_layer(residual)
+            
+            # 多样性信息映射
+            diver_rep = residual - homo_rep
+            
+            # 应用梯度友好的多样性信息约束
+            diver_rep = self.diversity_constraint(diver_rep)
+            
+            # 多样性信息映射
+            diver_rep = diver_layer(diver_rep)
+            
+            # 残差连接
+            residual = residual + homo_rep + diver_rep
+        
+        return residual, homo_rep, diver_rep #融合后的残差信息，同质信息，多样性嘻嘻
 
     def forward(self, interaction):
         user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
@@ -313,21 +378,16 @@ class DRAGON(GeneralRecommender):
         # neg_scores = torch.sum(user_tensor * neg_item_tensor, dim=1)
         
         # ****************** 多模态对齐（同质信息和多样性信息分离）******************
-        # homogen_t_rep = self.ffn(t_item_rep)
-        # homogen_v_rep = self.ffn(v_item_rep)
+        v_res,v_homo,v_diver = self.apply_resnet_blocks(v_rep, self.v_homo_blocks, self.v_diver_blocks)
 
-        # diff_v_rep = v_rep - homogen_v_rep
-        # diff_t_rep = t_rep - homogen_t_rep
+        t_res,t_homo,t_diver = self.apply_resnet_blocks(t_rep, self.t_homo_blocks, self.t_diver_blocks)
 
-        # diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
-        # diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
+        
+        ###TODO:这里应该有一步把v_res(残差得到的表示),v_homo(同质信息),v_diver（多样性信息）融合的一个过程
+        #我这里采用直接先相加的方式
+        v_rep = v_res + v_homo + v_diver
+        t_rep = t_res + t_homo + t_diver
 
-        # item_rep = (homogen_v_rep + homogen_t_rep) / 2
-        # pdb.set_trace()
-        v_rep_mlp = self.v_mlp(v_rep)
-        t_rep_mlp = self.t_mlp(t_rep)
-        v_rep = v_rep + v_rep_mlp
-        t_rep = t_rep + t_rep_mlp
         # combined = torch.cat([v_rep, t_rep], dim=1)
         # gate_score = self.gate(combined)
         # item_rep = gate_score * v_rep + (1 - gate_score) * t_rep
@@ -335,6 +395,8 @@ class DRAGON(GeneralRecommender):
         # item_rep = v_rep + t_rep
         # pdb.set_trace()
         # item_rep = torch.cat([v_rep,t_rep],dim=1)
+
+        ###############TODO：下这一部分是之前说的做QKV，也就是Attention的部分###########
         self.result_embed = torch.cat((user_rep, item_rep), dim=0)
 
         user_tensor = self.result_embed[user_nodes]
@@ -384,7 +446,7 @@ class DRAGON(GeneralRecommender):
         # neg_scores = torch.sum(F.cosine_similarity(user_tensor, neg_item_rep), dim=1)
 
         # return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
-        return pos_scores, neg_scores,t_rep, v_rep
+        return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
 
     def v_t_align_loss(self,v_rep,t_rep):
         def mmd_linear(t_rep, v_rep):
@@ -394,10 +456,27 @@ class DRAGON(GeneralRecommender):
             mean_diff = (mean_t - mean_v).pow(2).sum()
             return mean_diff
         return mmd_linear(v_rep,t_rep)
+    
+    def v_t_diver_loss(self,v_rep,t_rep):
+        # 这里是PAMD原始论文的做法
+        dot_prod = torch.sum(torch.mul(v_rep, t_rep), dim=1)
+        L_ort = torch.mean(dot_prod ** 2, dim=0)
+
+        # 我突然想到这里也可以考虑同样的类似于MMD的方法，可以先取均值，再进行计算,如有必要,可以开放下面的部分:
+        # # 计算两个模态的均值向量
+        # mean_t = t_rep.mean(dim=0)  # [dim_latent]
+        # mean_v = v_rep.mean(dim=0)  # [dim_latent]
+        # mean_t = mean_t.squeeze()
+        # mean_v = mean_v.squeeze()
+        # # 计算内积的平方
+        # dot_prod = torch.dot(mean_t, mean_v)  # 标量值
+        # L_ort = dot_prod ** 2  # 内积的平方
+        # # pdb.set_trace()
+        return L_ort
 
     def calculate_loss(self, interaction):
         user = interaction[0]
-        pos_scores, neg_scores, t_rep, v_rep = self.forward(interaction)
+        pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver = self.forward(interaction)
         # pos_scores, neg_scores = self.forward(interaction)
         loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
 
@@ -408,8 +487,11 @@ class DRAGON(GeneralRecommender):
 
         reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
         
-        align_loss = self.v_t_align_loss(v_rep,t_rep)
-        return loss_value + reg_loss + align_loss
+        align_loss = self.v_t_align_loss(v_homo,t_homo) # 同质信息对齐
+
+        diver_loss = self.v_t_diver_loss(v_diver,t_diver)
+
+        return loss_value + reg_loss + align_loss + diver_loss
 
 
     def full_sort_predict(self, interaction):
