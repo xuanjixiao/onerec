@@ -180,33 +180,34 @@ class DRAGON(GeneralRecommender):
         self.result_embed = nn.Parameter(
             nn.init.xavier_normal_(torch.tensor(np.random.randn(num_user + num_item, dim_x * 2)))).to(self.device)
         
-        self.num_blocks = config['res_block_num']  # 残差块的数量，可配置为超参数
-        # 创建多层映射网络
-        self.v_homo_blocks = nn.ModuleList()
-        self.t_homo_blocks = nn.ModuleList()
-        self.v_diver_blocks = nn.ModuleList()
-        self.t_diver_blocks = nn.ModuleList()
+        self.num_blocks = config['res_block_num']  # 残差块的数量
+        # 创建多层映射网络 - 不再区分同质/多样性块
+        self.v_res_blocks = nn.ModuleList()  # 视觉模态的残差块
+        self.t_res_blocks = nn.ModuleList()  # 文本模态的残差块
 
         for _ in range(self.num_blocks):
-            # 视觉模态的映射层
-            self.v_homo_blocks.append(
-                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
-                    bias=True, activation_func=gelu)
-            )
-            self.v_diver_blocks.append(
+            # 视觉模态的残差块
+            self.v_res_blocks.append(
                 FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
                     bias=True, activation_func=gelu)
             )
             
-            # 文本模态的映射层
-            self.t_homo_blocks.append(
+            # 文本模态的残差块
+            self.t_res_blocks.append(
                 FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
                     bias=True, activation_func=gelu)
             )
-            self.t_diver_blocks.append(
-                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
-                    bias=True, activation_func=gelu)
-            )
+
+        # 添加最终的同质/多样性分离层
+        self.v_homo_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
+        self.v_diver_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
+
+        self.t_homo_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
+        self.t_diver_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
 
     def get_knn_adj_mat(self, mm_embeddings):
         context_norm = mm_embeddings.div(torch.norm(mm_embeddings, p=2, dim=-1, keepdim=True))
@@ -268,43 +269,27 @@ class DRAGON(GeneralRecommender):
         # 2. 设置约束范围（可配置为超参数）
         clip_range = 2.0  # 标准差倍数范围
         
-        # 3. 自适应梯度缩放裁剪
-        # 核心思想：保持梯度流的同时约束数值范围
-        # 使用torch.where实现条件操作，保留梯度
-        clipped_rep = torch.where(
-            diver_rep > rep_mean + clip_range * rep_std,
-            rep_mean + clip_range * rep_std,
-            torch.where(
-                diver_rep < rep_mean - clip_range * rep_std,
-                rep_mean - clip_range * rep_std,
-                diver_rep
-            )
-        )
-        # 4. 保持原始梯度（梯度重定向）
-        # 使用技巧：将裁剪后的值作为常量加到原始值上，再减去原始值
-        # 这样既实现了裁剪，又保持了原始梯度
+        # 3. 计算裁剪边界
+        lower_bound = rep_mean - clip_range * rep_std
+        upper_bound = rep_mean + clip_range * rep_std
+        
+        # 4. 使用torch.clamp进行裁剪
+        clipped_rep = torch.clamp(diver_rep, min=lower_bound, max=upper_bound)
+        
+        # 5. 保持原始梯度（梯度重定向）
         return diver_rep + (clipped_rep - diver_rep).detach()
 
-    def apply_resnet_blocks(self, rep, homo_blocks, diver_blocks):
-        """应用多层残差块，对多样性信息进行数值约束"""
+    def apply_resnet_blocks(self, rep, res_blocks):
+        """应用多层残差块进行特征融合"""
         residual = rep
-        for homo_layer, diver_layer in zip(homo_blocks, diver_blocks):
-            # 同质信息映射
-            homo_rep = homo_layer(residual)
-            
-            # 多样性信息映射
-            diver_rep = residual - homo_rep
-            
-            # 应用梯度友好的多样性信息约束
-            diver_rep = self.diversity_constraint(diver_rep)
-            
-            # 多样性信息映射
-            diver_rep = diver_layer(diver_rep)
+        for block in res_blocks:
+            # 特征变换
+            transformed = block(residual)
             
             # 残差连接
-            residual = residual + homo_rep + diver_rep
+            residual = residual + transformed
         
-        return residual, homo_rep, diver_rep #融合后的残差信息，同质信息，多样性嘻嘻
+        return residual
 
     def forward(self, interaction):
         user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
@@ -377,16 +362,26 @@ class DRAGON(GeneralRecommender):
         # pos_scores = torch.sum(user_tensor * pos_item_tensor, dim=1)
         # neg_scores = torch.sum(user_tensor * neg_item_tensor, dim=1)
         
-        # ****************** 多模态对齐（同质信息和多样性信息分离）******************
-        v_res,v_homo,v_diver = self.apply_resnet_blocks(v_rep, self.v_homo_blocks, self.v_diver_blocks)
+            
+        # ****************** 多模态对齐（特征融合和分离）******************
+        # 1. 应用多层残差块进行特征融合
+        v_fused = self.apply_resnet_blocks(v_rep, self.v_res_blocks)
+        t_fused = self.apply_resnet_blocks(t_rep, self.t_res_blocks)
 
-        t_res,t_homo,t_diver = self.apply_resnet_blocks(t_rep, self.t_homo_blocks, self.t_diver_blocks)
+        # 2. 在最后一层分离同质和多样性信息
+        v_homo = self.v_homo_map(v_fused)
+        v_diver = v_fused - v_homo
+        v_diver = self.v_diver_map(v_diver)
+        v_diver = self.diversity_constraint(v_diver)
 
-        
-        ###TODO:这里应该有一步把v_res(残差得到的表示),v_homo(同质信息),v_diver（多样性信息）融合的一个过程
-        #我这里采用直接先相加的方式
-        v_rep = v_res + v_homo + v_diver
-        t_rep = t_res + t_homo + t_diver
+        t_homo = self.t_homo_map(t_fused)
+        t_diver = t_fused - t_homo
+        t_diver = self.t_diver_map(t_diver)
+        t_diver = self.diversity_constraint(t_diver)
+
+        # 3. 最终特征表示（残差连接）
+        v_rep = v_rep + v_homo + v_diver
+        t_rep = t_rep + t_homo + t_diver
 
         # combined = torch.cat([v_rep, t_rep], dim=1)
         # gate_score = self.gate(combined)
