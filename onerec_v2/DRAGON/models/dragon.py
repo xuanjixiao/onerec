@@ -181,24 +181,35 @@ class DRAGON(GeneralRecommender):
             nn.init.xavier_normal_(torch.tensor(np.random.randn(num_user + num_item, dim_x * 2)))).to(self.device)
         
         self.num_blocks = config['res_block_num']  # 残差块的数量
-        # 创建多层映射网络 - 不再区分同质/多样性块
-        self.v_res_blocks = nn.ModuleList()  # 视觉模态的残差块
-        self.t_res_blocks = nn.ModuleList()  # 文本模态的残差块
+        # 创建多层映射网络 - 为同质和多样性信息分别定义残差块
+        self.v_homo_res_blocks = nn.ModuleList()  # 视觉模态同质信息的残差块
+        self.v_diver_res_blocks = nn.ModuleList()  # 视觉模态多样性信息的残差块
+        self.t_homo_res_blocks = nn.ModuleList()  # 文本模态同质信息的残差块
+        self.t_diver_res_blocks = nn.ModuleList()  # 文本模态多样性信息的残差块
 
         for _ in range(self.num_blocks):
-            # 视觉模态的残差块
-            self.v_res_blocks.append(
+            # 视觉模态的同质信息残差块
+            self.v_homo_res_blocks.append(
                 FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
                     bias=True, activation_func=gelu)
             )
-            
-            # 文本模态的残差块
-            self.t_res_blocks.append(
+            # 视觉模态的多样性信息残差块
+            self.v_diver_res_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            # 文本模态的同质信息残差块
+            self.t_homo_res_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            # 文本模态的多样性信息残差块
+            self.t_diver_res_blocks.append(
                 FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
                     bias=True, activation_func=gelu)
             )
 
-        # 添加最终的同质/多样性分离层
+        # 添加初始的同质/多样性分离层
         self.v_homo_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
                             bias=True, activation_func=gelu)
         self.v_diver_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
@@ -363,26 +374,48 @@ class DRAGON(GeneralRecommender):
         # neg_scores = torch.sum(user_tensor * neg_item_tensor, dim=1)
         
             
-        # ****************** 多模态对齐（特征融合和分离）******************
-        # 1. 应用多层残差块进行特征融合
-        v_fused = self.apply_resnet_blocks(v_rep, self.v_res_blocks)
-        t_fused = self.apply_resnet_blocks(t_rep, self.t_res_blocks)
+        # # ****************** 多模态对齐（特征融合和分离）******************
+        # # 1. 应用多层残差块进行特征融合
+        # v_fused = self.apply_resnet_blocks(v_rep, self.v_res_blocks)
+        # t_fused = self.apply_resnet_blocks(t_rep, self.t_res_blocks)
 
-        # 2. 在最后一层分离同质和多样性信息
-        v_homo = self.v_homo_map(v_fused)
-        v_diver = v_fused - v_homo
+        # # 2. 在最后一层分离同质和多样性信息
+        # v_homo = self.v_homo_map(v_fused)
+        # v_diver = v_fused - v_homo
+        # v_diver = self.v_diver_map(v_diver)
+        # v_diver = self.diversity_constraint(v_diver)
+
+        # t_homo = self.t_homo_map(t_fused)
+        # t_diver = t_fused - t_homo
+        # t_diver = self.t_diver_map(t_diver)
+        # t_diver = self.diversity_constraint(t_diver)
+
+        # # 3. 最终特征表示（残差连接）
+        # v_rep = v_rep + v_homo + v_diver
+        # t_rep = t_rep + t_homo + t_diver
+        # ****************** 多模态对齐（特征融合和分离）******************
+        # 1. 初始分离同质和多样性信息
+        v_homo = self.v_homo_map(v_rep)
+        v_diver = v_rep - v_homo
         v_diver = self.v_diver_map(v_diver)
         v_diver = self.diversity_constraint(v_diver)
 
-        t_homo = self.t_homo_map(t_fused)
-        t_diver = t_fused - t_homo
+        t_homo = self.t_homo_map(t_rep)
+        t_diver = t_rep - t_homo
         t_diver = self.t_diver_map(t_diver)
         t_diver = self.diversity_constraint(t_diver)
-
-        # 3. 最终特征表示（残差连接）
-        v_rep = v_rep + v_homo + v_diver
-        t_rep = t_rep + t_homo + t_diver
-
+        
+        # 2. 对同质和多样性信息分别应用残差块
+        # 应用多层残差块进行特征融合
+        v_homo = self.apply_resnet_blocks(v_homo, self.v_homo_res_blocks)
+        v_diver = self.apply_resnet_blocks(v_diver, self.v_diver_res_blocks)
+        
+        t_homo = self.apply_resnet_blocks(t_homo, self.t_homo_res_blocks)
+        t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks)
+        
+        # 3. 最终特征表示（融合同质和多样性信息）
+        v_rep = v_homo + v_diver + v_rep
+        t_rep = t_homo + t_diver + t_rep
         # combined = torch.cat([v_rep, t_rep], dim=1)
         # gate_score = self.gate(combined)
         # item_rep = gate_score * v_rep + (1 - gate_score) * t_rep
