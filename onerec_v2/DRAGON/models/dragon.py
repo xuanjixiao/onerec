@@ -20,12 +20,14 @@ from common.init import xavier_uniform_initialization
 import math
 from typing import Optional, Tuple, Union, List, Callable, Dict, Any
 from torch.nn import LayerNorm
-
+import pdb
 
 class DRAGON(GeneralRecommender):
     def __init__(self, config, dataset):
         super(DRAGON, self).__init__(config, dataset)
-
+        # self.gate = nn.Sequential(
+        #     nn.Linear(128,64),
+        #     nn.Sigmoid())
         num_user = self.n_users
         num_item = self.n_items
         batch_size = config['train_batch_size']  # not used
@@ -34,10 +36,9 @@ class DRAGON(GeneralRecommender):
         self.n_layers = config['n_mm_layers']
         self.knn_k = config['knn_k']
         self.mm_image_weight = config['mm_image_weight']
-
-        self.homoge_weight = config['homoge_weight']
+        self.v_weight = config['v_weight']
+        self.t_weight = 1 - self.v_weight
         has_id = True
-
         self.batch_size = batch_size
         self.num_user = num_user
         self.num_item = num_item
@@ -47,6 +48,7 @@ class DRAGON(GeneralRecommender):
         self.num_layer = 1
         self.cold_start = 0
         self.dataset = dataset
+        self.mmd = MMDLoss()
         # self.construction = 'weighted_max'
         # self.construction = 'weighted_sum'
         self.construction = 'cat'
@@ -177,15 +179,47 @@ class DRAGON(GeneralRecommender):
 
         self.result_embed = nn.Parameter(
             nn.init.xavier_normal_(torch.tensor(np.random.randn(num_user + num_item, dim_x * 2)))).to(self.device)
-
-        # Project back to h.
-
-        self.ffn = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True, 
-                       activation_func=gelu)
         
-        self.heterogeneous_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
-                                     bias=True, activation_func=gelu)
-        
+        self.num_blocks = config['res_block_num']  # 残差块的数量
+        # 创建多层映射网络 - 为同质和多样性信息分别定义残差块
+        self.v_homo_res_blocks = nn.ModuleList()  # 视觉模态同质信息的残差块
+        self.v_diver_res_blocks = nn.ModuleList()  # 视觉模态多样性信息的残差块
+        self.t_homo_res_blocks = nn.ModuleList()  # 文本模态同质信息的残差块
+        self.t_diver_res_blocks = nn.ModuleList()  # 文本模态多样性信息的残差块
+
+        for _ in range(self.num_blocks):
+            # 视觉模态的同质信息残差块
+            self.v_homo_res_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            # 视觉模态的多样性信息残差块
+            self.v_diver_res_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            # 文本模态的同质信息残差块
+            self.t_homo_res_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+            # 文本模态的多样性信息残差块
+            self.t_diver_res_blocks.append(
+                FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                    bias=True, activation_func=gelu)
+            )
+
+        # 添加初始的同质/多样性分离层
+        self.v_homo_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
+        self.v_diver_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
+
+        self.t_homo_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
+        self.t_diver_map = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, 
+                            bias=True, activation_func=gelu)
+
     def get_knn_adj_mat(self, mm_embeddings):
         context_norm = mm_embeddings.div(torch.norm(mm_embeddings, p=2, dim=-1, keepdim=True))
         # print("mm_embeddings.shape:", mm_embeddings.shape, "context_norm.shape", context_norm.shape)
@@ -222,10 +256,6 @@ class DRAGON(GeneralRecommender):
         rows_inv_sqrt = r_inv_sqrt[indices[0]]
         cols_inv_sqrt = r_inv_sqrt[indices[1]]
         values = rows_inv_sqrt * cols_inv_sqrt
-
-        # compute_normalized_laplacian.shape: torch.Size([2, 35250]) torch.Size([35250]) torch.Size([7050, 7050])
-        # print("compute_normalized_laplacian.shape:", adj.shape, indices.shape, values.shape, adj_size)
-
         return torch.sparse.FloatTensor(indices, values, adj_size)
 
     def pre_epoch_processing(self):
@@ -237,6 +267,40 @@ class DRAGON(GeneralRecommender):
         cols = inter_mat.col + self.n_users
         # ndarray([598918, 2]) for ml-imdb
         return np.column_stack((rows, cols))
+
+    def diversity_constraint(self, diver_rep):
+        """
+        对多样性信息进行数值约束，防止过大/过小
+        使用自适应梯度缩放技术，保持梯度流
+        """
+        # 1. 计算当前多样性信息的统计量
+        rep_mean = diver_rep.mean()
+        rep_std = diver_rep.std()
+        
+        # 2. 设置约束范围（可配置为超参数）
+        clip_range = 2.0  # 标准差倍数范围
+        
+        # 3. 计算裁剪边界
+        lower_bound = rep_mean - clip_range * rep_std
+        upper_bound = rep_mean + clip_range * rep_std
+        
+        # 4. 使用torch.clamp进行裁剪
+        clipped_rep = torch.clamp(diver_rep, min=lower_bound, max=upper_bound)
+        
+        # 5. 保持原始梯度（梯度重定向）
+        return diver_rep + (clipped_rep - diver_rep).detach()
+
+    def apply_resnet_blocks(self, rep, res_blocks):
+        """应用多层残差块进行特征融合"""
+        residual = rep
+        for block in res_blocks:
+            # 特征变换
+            transformed = block(residual)
+            
+            # 残差连接
+            residual = residual + transformed
+        
+        return residual
 
     def forward(self, interaction):
         user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
@@ -299,7 +363,7 @@ class DRAGON(GeneralRecommender):
         v_user_rep = torch.unsqueeze(v_user_rep, 2)
         user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
         user_rep = torch.squeeze(user_rep)
-
+        # pdb.set_trace()
         # # print("user_rep", user_rep.shape, user_rep.dtype, item_rep.shape, item_rep.dtype)
         # self.result_embed = torch.cat((user_rep, item_rep), dim=0)
         # # self.result_embed = nn.Parameter(torch.cat((user_rep, item_rep), dim=0))
@@ -309,28 +373,86 @@ class DRAGON(GeneralRecommender):
         # pos_scores = torch.sum(user_tensor * pos_item_tensor, dim=1)
         # neg_scores = torch.sum(user_tensor * neg_item_tensor, dim=1)
         
-        # ****************** 多模态对齐（同质信息和多样性信息分离）******************
-        homogen_t_rep = self.ffn(t_item_rep)
-        homogen_v_rep = self.ffn(v_item_rep)
+            
+        # # ****************** 多模态对齐（特征融合和分离）******************
+        # # 1. 应用多层残差块进行特征融合
+        # v_fused = self.apply_resnet_blocks(v_rep, self.v_res_blocks)
+        # t_fused = self.apply_resnet_blocks(t_rep, self.t_res_blocks)
 
-        diff_v_rep = v_rep - homogen_v_rep
-        diff_t_rep = t_rep - homogen_t_rep
+        # # 2. 在最后一层分离同质和多样性信息
+        # v_homo = self.v_homo_map(v_fused)
+        # v_diver = v_fused - v_homo
+        # v_diver = self.v_diver_map(v_diver)
+        # v_diver = self.diversity_constraint(v_diver)
 
-        diversity_v_rep = self.heterogeneous_mlp(diff_v_rep)
-        diversity_t_rep = self.heterogeneous_mlp(diff_t_rep)
+        # t_homo = self.t_homo_map(t_fused)
+        # t_diver = t_fused - t_homo
+        # t_diver = self.t_diver_map(t_diver)
+        # t_diver = self.diversity_constraint(t_diver)
 
-        item_rep = (homogen_v_rep + homogen_t_rep) / 2
-        self.result_embed = torch.cat((user_rep, item_rep), dim=0)
+        # # 3. 最终特征表示（残差连接）
+        # v_rep = v_rep + v_homo + v_diver
+        # t_rep = t_rep + t_homo + t_diver
+        # ****************** 多模态对齐（特征融合和分离）******************
+        # 1. 初始分离同质和多样性信息
+        v_homo = self.v_homo_map(v_rep)
+        v_diver = v_rep - v_homo
+        v_diver = self.v_diver_map(v_diver)
+        v_diver = self.diversity_constraint(v_diver)
 
-        user_tensor = self.result_embed[user_nodes]
-        pos_item_tensor = self.result_embed[pos_item_nodes]
-        neg_item_tensor = self.result_embed[neg_item_nodes]
+        t_homo = self.t_homo_map(t_rep)
+        t_diver = t_rep - t_homo
+        t_diver = self.t_diver_map(t_diver)
+        t_diver = self.diversity_constraint(t_diver)
+        
+        # 2. 对同质和多样性信息分别应用残差块
+        # 应用多层残差块进行特征融合
+        v_homo = self.apply_resnet_blocks(v_homo, self.v_homo_res_blocks)
+        v_diver = self.apply_resnet_blocks(v_diver, self.v_diver_res_blocks)
+        
+        t_homo = self.apply_resnet_blocks(t_homo, self.t_homo_res_blocks)
+        t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks)
+        
+        # 3. 最终特征表示（融合同质和多样性信息）
+        # v_rep = v_homo + v_diver + v_rep
+        # t_rep = t_homo + t_diver + t_rep
+        # combined = torch.cat([v_rep, t_rep], dim=1)
+        # gate_score = self.gate(combined)
+        # item_rep = gate_score * v_rep + (1 - gate_score) * t_rep
+        # item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
+        # item_rep = v_rep + t_rep
+        # pdb.set_trace()
+        # item_rep = torch.cat([v_rep,t_rep],dim=1)
 
-        diversity_v_embed_pos = torch.cat((user_rep, diversity_v_rep), dim=0)[pos_item_nodes]
-        diversity_t_embed_pos = torch.cat((user_rep, diversity_t_rep), dim=0)[pos_item_nodes]
+        ###############TODO：下这一部分是之前说的做QKV，也就是Attention的部分###########
+        # self.result_embed = torch.cat((user_rep, item_rep), dim=0)
 
-        diversity_v_embed_neg = torch.cat((user_rep, diversity_v_rep), dim=0)[neg_item_nodes]
-        diversity_t_embed_neg = torch.cat((user_rep, diversity_t_rep), dim=0)[neg_item_nodes]
+        # user_tensor = self.user_rep[user_nodes]
+        # pos_item_tensor = self.result_embed[pos_item_nodes]
+        # neg_item_tensor = self.result_embed[neg_item_nodes]
+
+        # diversity_v_embed_pos = torch.cat((user_rep, diversity_v_rep), dim=0)[pos_item_nodes]
+        # diversity_t_embed_pos = torch.cat((user_rep, diversity_t_rep), dim=0)[pos_item_nodes]
+
+        # diversity_v_embed_neg = torch.cat((user_rep, diversity_v_rep), dim=0)[neg_item_nodes]
+        # diversity_t_embed_neg = torch.cat((user_rep, diversity_t_rep), dim=0)[neg_item_nodes]
+
+
+        hidden_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        hidden_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+        hidden_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        hidden_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
+
+        homo_v_embed_pos = torch.cat((user_rep, v_homo), dim=0)[pos_item_nodes]
+        homo_t_embed_pos = torch.cat((user_rep, t_homo), dim=0)[pos_item_nodes]
+        homo_v_embed_neg = torch.cat((user_rep, v_homo), dim=0)[neg_item_nodes]
+        homo_t_embed_neg = torch.cat((user_rep, t_homo), dim=0)[neg_item_nodes]
+
+        diversity_v_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_v_embed_neg = torch.cat((user_rep, v_diver), dim=0)[neg_item_nodes]
+        diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
+
 
         def QKV(user_tensor, k_list):
             k_values_tensor = torch.stack(k_list)
@@ -345,24 +467,58 @@ class DRAGON(GeneralRecommender):
             final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
             return final_item_rep
 
-        k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
+        # k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
+        # pos_item_rep = QKV(user_tensor, k_list)
+
+        # k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
+        # neg_item_rep = QKV(user_tensor, k_list)
+        user_tensor = self.user_rep[user_nodes]
+
+        k_list = [hidden_v_embed_pos, homo_v_embed_pos, diversity_v_embed_pos, hidden_t_embed_pos, homo_t_embed_pos, diversity_t_embed_pos]
         pos_item_rep = QKV(user_tensor, k_list)
 
-        k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
+        k_list = [hidden_v_embed_neg, homo_v_embed_neg, diversity_v_embed_neg, hidden_t_embed_neg, homo_t_embed_neg, diversity_t_embed_neg] 
         neg_item_rep = QKV(user_tensor, k_list)
-
+    
         pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
         neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
 
         # pos_scores = torch.sum(F.cosine_similarity(user_tensor, pos_item_rep), dim=1)
         # neg_scores = torch.sum(F.cosine_similarity(user_tensor, neg_item_rep), dim=1)
 
-        return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
+        # return pos_scores, neg_scores, homogen_t_rep, homogen_v_rep
+        return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
+
+    def v_t_align_loss(self,v_rep,t_rep):
+        def mmd_linear(t_rep, v_rep):
+            """线性时间MMD近似"""
+            mean_t = t_rep.mean(0)
+            mean_v = v_rep.mean(0)
+            mean_diff = (mean_t - mean_v).pow(2).sum()
+            return mean_diff
+        return mmd_linear(v_rep,t_rep)
+    
+    def v_t_diver_loss(self,v_rep,t_rep):
+        # 这里是PAMD原始论文的做法
+        dot_prod = torch.sum(torch.mul(v_rep, t_rep), dim=1)
+        L_ort = torch.mean(dot_prod ** 2, dim=0)
+
+        # 我突然想到这里也可以考虑同样的类似于MMD的方法，可以先取均值，再进行计算,如有必要,可以开放下面的部分:
+        # # 计算两个模态的均值向量
+        # mean_t = t_rep.mean(dim=0)  # [dim_latent]
+        # mean_v = v_rep.mean(dim=0)  # [dim_latent]
+        # mean_t = mean_t.squeeze()
+        # mean_v = mean_v.squeeze()
+        # # 计算内积的平方
+        # dot_prod = torch.dot(mean_t, mean_v)  # 标量值
+        # L_ort = dot_prod ** 2  # 内积的平方
+        # # pdb.set_trace()
+        return L_ort
 
     def calculate_loss(self, interaction):
         user = interaction[0]
-        pos_scores, neg_scores, homogen_t_rep, homogen_v_rep = self.forward(interaction)
-
+        pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver = self.forward(interaction)
+        # pos_scores, neg_scores = self.forward(interaction)
         loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
 
         reg_embedding_loss_v = (self.v_preference[user] ** 2).mean() if self.v_preference is not None else 0.0
@@ -371,9 +527,12 @@ class DRAGON(GeneralRecommender):
         reg_loss = self.reg_weight * (reg_embedding_loss_v + reg_embedding_loss_t)
 
         reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
+        
+        align_loss = self.v_t_align_loss(v_homo,t_homo) # 同质信息对齐
 
-        homoge_loss = self.homoge_weight * F.mse_loss(homogen_t_rep, homogen_v_rep)
-        return loss_value + reg_loss + homoge_loss
+        diver_loss = self.v_t_diver_loss(v_diver,t_diver)
+
+        return loss_value + reg_loss + align_loss + diver_loss
 
 
     def full_sort_predict(self, interaction):
@@ -485,7 +644,6 @@ class GCN(torch.nn.Module):
         x = F.normalize(x).to(self.device)
         h = self.conv_embed_1(x, edge_index)  # equation 1
         h_1 = self.conv_embed_1(h, edge_index)
-
         x_hat = h + x + h_1
         return x_hat, self.preference
 
@@ -539,7 +697,7 @@ class GEGLU(torch.nn.Module):
 
 
 
-@torch.jit.script
+# @torch.jit.script
 def gelu_impl(x):
     """OpenAI's gelu implementation."""
     return 0.5 * x * (1.0 + torch.tanh(0.7978845608028654 * x *
@@ -552,34 +710,77 @@ class FFN(torch.nn.Module):
     def __init__(self, hidden_size, inner_hidden_size=None,
                  bias=True, activation_func=gelu):
         super(FFN, self).__init__()
-        self.activation_func = activation_func
-        # Project to 4h.
         self.hidden_size = hidden_size
         if inner_hidden_size is None:
             inner_hidden_size = 4 * hidden_size
         self.inner_hidden_size = inner_hidden_size
-        self.dense_h_to_4h = torch.nn.Linear(
-            self.hidden_size,
-            self.inner_hidden_size,
-            bias=bias,
-        )
-        # Project back to h.
-        self.dense_4h_to_h = torch.nn.Linear(
-            self.inner_hidden_size,
-            self.hidden_size,
-            bias=bias,
+        self.layers = torch.nn.Sequential(
+            torch.nn.Linear(self.hidden_size, self.inner_hidden_size, bias=bias),
+            nn.GELU(),
+            torch.nn.Linear(self.inner_hidden_size, self.hidden_size, bias=bias),
         )
 
     def forward(self, hidden_states):
         """
-        hidden_states: [seq_len, batch, hidden_size]
+        hidden_states: [item_num,hidden_size]
         """
-
-        # [seq_len, batch, inner_hidden_size]
-        intermediate_parallel = self.dense_h_to_4h(hidden_states)
-
-        intermediate_parallel = self.activation_func(intermediate_parallel)
-
-        output = self.dense_4h_to_h(intermediate_parallel)
-
+        output = self.layers(hidden_states)
         return output
+
+
+class MMDLoss(nn.Module):
+    '''
+    计算源域数据和目标域数据的MMD距离
+    Params:
+    source: 源域数据（n * len(x))
+    target: 目标域数据（m * len(y))
+    kernel_mul:
+    kernel_num: 取不同高斯核的数量
+    fix_sigma: 不同高斯核的sigma值
+    Return:
+    loss: MMD loss
+    '''
+    def __init__(self, kernel_type='rbf', kernel_mul=2.0, kernel_num=5, fix_sigma=None, **kwargs):
+        super(MMDLoss, self).__init__()
+        self.kernel_num = kernel_num
+        self.kernel_mul = kernel_mul
+        self.fix_sigma = None
+        self.kernel_type = kernel_type
+
+    def guassian_kernel(self, source, target, kernel_mul, kernel_num, fix_sigma):
+        n_samples = int(source.size()[0]) + int(target.size()[0])
+        total = torch.cat([source, target], dim=0)
+        total0 = total.unsqueeze(0).expand(
+            int(total.size(0)), int(total.size(0)), int(total.size(1)))
+        total1 = total.unsqueeze(1).expand(
+            int(total.size(0)), int(total.size(0)), int(total.size(1)))
+        L2_distance = ((total0-total1)**2).sum(2)
+        if fix_sigma:
+            bandwidth = fix_sigma
+        else:
+            bandwidth = torch.sum(L2_distance.data) / (n_samples**2-n_samples)
+        bandwidth /= kernel_mul ** (kernel_num // 2)
+        bandwidth_list = [bandwidth * (kernel_mul**i)
+                          for i in range(kernel_num)]
+        kernel_val = [torch.exp(-L2_distance / bandwidth_temp)
+                      for bandwidth_temp in bandwidth_list]
+        return sum(kernel_val)
+
+    def linear_mmd2(self, f_of_X, f_of_Y):
+        loss = 0.0
+        delta = f_of_X.float().mean(0) - f_of_Y.float().mean(0)
+        loss = delta.dot(delta.T)
+        return loss
+
+    def forward(self, source, target):
+        if self.kernel_type == 'linear':
+            return self.linear_mmd2(source, target)
+        elif self.kernel_type == 'rbf':
+            batch_size = int(source.size()[0])
+            kernels = self.guassian_kernel(source, target, kernel_mul=self.kernel_mul, kernel_num=self.kernel_num, fix_sigma=self.fix_sigma)
+            XX = torch.mean(kernels[:batch_size, :batch_size])
+            YY = torch.mean(kernels[batch_size:, batch_size:])
+            XY = torch.mean(kernels[:batch_size, batch_size:])
+            YX = torch.mean(kernels[batch_size:, :batch_size])
+            loss = torch.mean(XX + YY - XY - YX)
+            return loss
