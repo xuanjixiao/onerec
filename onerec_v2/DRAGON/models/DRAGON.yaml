@@ -1,0 +1,25 @@
+embedding_size: 64
+feat_embed_dim: 64
+
+
+n_layers: 2
+# mm_image_weight: [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
+mm_image_weight: [0.1]
+aggr_mode: ['add']
+# knn_k: [5, 10, 20]
+# k: [30,40,50]
+knn_k: [20]
+k: [30]
+# n_mm_layers: [1,2]
+# u_layers: [1,2]
+n_mm_layers: [1]
+u_layers: [1]
+# learning_rate: [0.1, 0.01, 0.001, 0.0001, 0.00001]
+# reg_weight: [0.1, 0.01, 0.001, 0.0001, 0.00001]
+learning_rate: [0.0001]
+reg_weight: [0.001]
+# homoge_weight: [0.2, 0.1, 0.01, 0.001, 0.0001]
+v_weight: [0.3]
+res_block_num: [1,2,3]
+# v_weight: [0.8]
+hyper_parameters: ["mm_image_weight","k", "u_layers", "n_mm_layers","res_block_num", "knn_k", "aggr_mode", "reg_weight", "learning_rate", "v_weight"]
