@@ -12,7 +12,6 @@ import torch.nn.functional as F
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, degree
 import torch_geometric
-
 from common.abstract_recommender import GeneralRecommender
 from common.loss import BPRLoss, EmbLoss
 from common.init import xavier_uniform_initialization
@@ -414,22 +413,22 @@ class DRAGON(GeneralRecommender):
         t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks)
         
         # 3. 最终特征表示（融合同质和多样性信息）
-        v_rep = v_homo + v_diver + v_rep
-        t_rep = t_homo + t_diver + t_rep
+        # v_rep = v_homo + v_diver + v_rep
+        # t_rep = t_homo + t_diver + t_rep
         # combined = torch.cat([v_rep, t_rep], dim=1)
         # gate_score = self.gate(combined)
         # item_rep = gate_score * v_rep + (1 - gate_score) * t_rep
-        item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
+        # item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
         # item_rep = v_rep + t_rep
         # pdb.set_trace()
         # item_rep = torch.cat([v_rep,t_rep],dim=1)
 
         ###############TODO：下这一部分是之前说的做QKV，也就是Attention的部分###########
-        self.result_embed = torch.cat((user_rep, item_rep), dim=0)
+        # self.result_embed = torch.cat((user_rep, item_rep), dim=0)
 
-        user_tensor = self.result_embed[user_nodes]
-        pos_item_tensor = self.result_embed[pos_item_nodes]
-        neg_item_tensor = self.result_embed[neg_item_nodes]
+        # user_tensor = self.user_rep[user_nodes]
+        # pos_item_tensor = self.result_embed[pos_item_nodes]
+        # neg_item_tensor = self.result_embed[neg_item_nodes]
 
         # diversity_v_embed_pos = torch.cat((user_rep, diversity_v_rep), dim=0)[pos_item_nodes]
         # diversity_t_embed_pos = torch.cat((user_rep, diversity_t_rep), dim=0)[pos_item_nodes]
@@ -438,11 +437,21 @@ class DRAGON(GeneralRecommender):
         # diversity_t_embed_neg = torch.cat((user_rep, diversity_t_rep), dim=0)[neg_item_nodes]
 
 
-        diversity_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
-        diversity_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+        hidden_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        hidden_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+        hidden_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        hidden_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
 
-        diversity_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        homo_v_embed_pos = torch.cat((user_rep, v_homo), dim=0)[pos_item_nodes]
+        homo_t_embed_pos = torch.cat((user_rep, t_homo), dim=0)[pos_item_nodes]
+        homo_v_embed_neg = torch.cat((user_rep, v_homo), dim=0)[neg_item_nodes]
+        homo_t_embed_neg = torch.cat((user_rep, t_homo), dim=0)[neg_item_nodes]
+
+        diversity_v_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_v_embed_neg = torch.cat((user_rep, v_diver), dim=0)[neg_item_nodes]
         diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
+
 
         def QKV(user_tensor, k_list):
             k_values_tensor = torch.stack(k_list)
@@ -462,11 +471,14 @@ class DRAGON(GeneralRecommender):
 
         # k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
         # neg_item_rep = QKV(user_tensor, k_list)
-        k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
+        user_tensor = self.user_rep[user_nodes]
+
+        k_list = [hidden_v_embed_pos, homo_v_embed_pos, diversity_v_embed_pos, hidden_t_embed_pos, homo_t_embed_pos, diversity_t_embed_pos]
         pos_item_rep = QKV(user_tensor, k_list)
 
-        k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
+        k_list = [hidden_v_embed_neg, homo_v_embed_neg, diversity_v_embed_neg, hidden_t_embed_neg, homo_t_embed_neg, diversity_t_embed_neg] 
         neg_item_rep = QKV(user_tensor, k_list)
+    
         pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
         neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
 
