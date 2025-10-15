@@ -13,6 +13,8 @@ import scipy.sparse as sp
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch_geometric.nn.conv import MessagePassing
+from torch_geometric.utils import remove_self_loops, add_self_loops, degree
 
 from common.abstract_recommender import GeneralRecommender
 from common.loss import BPRLoss, EmbLoss, L2Loss
@@ -36,6 +38,10 @@ class FREEDOM(GeneralRecommender):
         self.dropout = config['dropout']
         self.degree_ratio = config['degree_ratio']
 
+        # dragon特有参数
+        self.aggr_mode = config['aggr_mode']
+        self.num_blocks = config['res_block_num']  # 残差块的数量
+
         self.n_nodes = self.n_users + self.n_items
 
         # load dataset info
@@ -46,8 +52,15 @@ class FREEDOM(GeneralRecommender):
         self.edge_indices, self.edge_values = self.edge_indices.to(self.device), self.edge_values.to(self.device)
         self.edge_full_indices = torch.arange(self.edge_values.size(0)).to(self.device)
 
+        edge_index = self.pack_edge_index(self.interaction_matrix)
+        self.edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous().to(self.device)
+        self.edge_index = torch.cat((self.edge_index, self.edge_index[[1, 0]]), dim=1)
+    
         self.user_embedding = nn.Embedding(self.n_users, self.embedding_dim)
         self.item_id_embedding = nn.Embedding(self.n_items, self.embedding_dim)
+        self.user_t_embedding = nn.Embedding(self.n_users, self.embedding_dim)
+        self.user_v_embedding = nn.Embedding(self.n_users, self.embedding_dim)
+
         nn.init.xavier_uniform_(self.user_embedding.weight)
         nn.init.xavier_uniform_(self.item_id_embedding.weight)
 
@@ -75,6 +88,46 @@ class FREEDOM(GeneralRecommender):
                 del text_adj
                 del image_adj
             torch.save(self.mm_adj, mm_adj_file)
+
+        self.user_mlp_layer = nn.Linear(self.feat_embed_dim * 2, self.feat_embed_dim)
+        if self.v_feat is not None:            
+            self.v_gcn = GCN(self.user_v_embedding, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
+                             device=self.device, use_mlp=False)  # 256)
+        if self.t_feat is not None:
+            self.t_gcn = GCN(self.user_t_embedding, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
+                             device=self.device, use_mlp=False)
+
+        # 创建多层映射网络 - 为同质和多样性信息分别定义残差块
+        self.v_homo_res_blocks = nn.ModuleList()  # 视觉模态同质信息的残差块
+        self.v_diver_res_blocks = nn.ModuleList()  # 视觉模态多样性信息的残差块
+        self.t_homo_res_blocks = nn.ModuleList()  # 文本模态同质信息的残差块
+        self.t_diver_res_blocks = nn.ModuleList()  # 文本模态多样性信息的残差块
+
+        # 视觉模态的同质信息残差块
+        self.v_homo_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        # 视觉模态的多样性信息残差块
+        self.v_diver_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        
+        # 文本模态的同质信息残差块
+        self.t_homo_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        
+        # 文本模态的多样性信息残差块
+        self.t_diver_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+
+        # 添加初始的同质/多样性分离层
+        self.v_homo_map = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, 
+                            bias=True, activation=nn.ReLU)
+        self.v_diver_map = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, 
+                            bias=True, activation=nn.ReLU)
+
+        self.t_homo_map = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, 
+                            bias=True, activation=nn.ReLU)
+        self.t_diver_map = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, 
+                            bias=True, activation=nn.ReLU)
 
     def get_knn_adj_mat(self, mm_embeddings):
         context_norm = mm_embeddings.div(torch.norm(mm_embeddings, p=2, dim=-1, keepdim=True))
@@ -153,6 +206,12 @@ class FREEDOM(GeneralRecommender):
         values = rows_inv_sqrt * cols_inv_sqrt
         return values
 
+    def pack_edge_index(self, inter_mat):
+        rows = inter_mat.row
+        cols = inter_mat.col + self.n_users
+        # ndarray([598918, 2]) for ml-imdb
+        return np.column_stack((rows, cols))
+
     def get_edge_info(self):
         rows = torch.from_numpy(self.interaction_matrix.row)
         cols = torch.from_numpy(self.interaction_matrix.col)
@@ -177,6 +236,103 @@ class FREEDOM(GeneralRecommender):
         u_g_embeddings, i_g_embeddings = torch.split(all_embeddings, [self.n_users, self.n_items], dim=0)
         return u_g_embeddings, i_g_embeddings + h
 
+    def forward_new(self, interaction):
+        # dragon
+        user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
+        pos_item_nodes += self.n_users
+        neg_item_nodes += self.n_users
+
+        if self.v_feat is not None:
+            self.v_rep, _ = self.v_gcn(self.edge_index, self.v_feat)
+        if self.t_feat is not None:
+            self.t_rep, _ = self.t_gcn(self.edge_index, self.t_feat)
+
+        v_rep = self.v_rep[self.num_user:]
+        t_rep = self.t_rep[self.num_user:]
+
+        ############################################ multi-modal information aggregation
+        # ****************** 同质信息的处理， 实验中可以放开这部分 ******************
+        # h = (homogen_v_rep + homogen_t_rep) / 2
+        # # print('device:', self.mm_adj.device, h.device)  # 输出：cpu
+        v_h = v_rep
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, v_h)
+        v_item_rep = v_h + h
+        h_u1 = self.user_graph(self.user_v_embedding, self.epoch_user_graph, self.user_weight_matrix)
+        v_user_rep = self.user_v_embedding + h_u1
+
+        t_h = t_rep
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, t_h)
+        t_item_rep = t_h + h
+        h_u1 = self.user_graph(self.user_t_embedding, self.epoch_user_graph, self.user_weight_matrix)
+        t_user_rep = self.user_t_embedding + h_u1
+
+        t_user_rep = torch.unsqueeze(t_user_rep, 2)
+        v_user_rep = torch.unsqueeze(v_user_rep, 2)
+        user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
+        user_rep = torch.squeeze(user_rep)
+       
+        # 1. 初始分离同质和多样性信息
+        v_homo = self.v_homo_map(v_rep)
+        v_diver = v_rep - v_homo
+        v_diver = self.v_diver_map(v_diver)
+        v_diver = self.diversity_constraint(v_diver)
+
+        t_homo = self.t_homo_map(t_rep)
+        t_diver = t_rep - t_homo
+        t_diver = self.t_diver_map(t_diver)
+        t_diver = self.diversity_constraint(t_diver)
+        
+        # 2. 对同质和多样性信息分别应用残差块
+        # 应用多层残差块进行特征融合
+        v_homo = self.apply_resnet_blocks(v_homo, self.v_homo_res_blocks)
+        v_diver = self.apply_resnet_blocks(v_diver, self.v_diver_res_blocks)
+        
+        t_homo = self.apply_resnet_blocks(t_homo, self.t_homo_res_blocks)
+        t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks)
+
+        hidden_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        hidden_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+        hidden_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        hidden_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
+
+        homo_v_embed_pos = torch.cat((user_rep, v_homo), dim=0)[pos_item_nodes]
+        homo_t_embed_pos = torch.cat((user_rep, t_homo), dim=0)[pos_item_nodes]
+        homo_v_embed_neg = torch.cat((user_rep, v_homo), dim=0)[neg_item_nodes]
+        homo_t_embed_neg = torch.cat((user_rep, t_homo), dim=0)[neg_item_nodes]
+
+        diversity_v_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_v_embed_neg = torch.cat((user_rep, v_diver), dim=0)[neg_item_nodes]
+        diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
+
+
+        def QKV(user_tensor, k_list):
+            k_values_tensor = torch.stack(k_list)
+            # print("k_values_tensor:", k_values_tensor.shape)
+
+            # 步骤1：计算相似度得分（原始注意力分数）
+            sim_scores = torch.einsum('nd,knd->kn', user_tensor, k_values_tensor)  # 形状 [K, N]
+            # 步骤2：沿K维度对分数做Softmax归一化
+            weights = torch.softmax(sim_scores, dim=0)     # 形状 [K, N]
+            # 步骤3：对k向量加权并沿K维度求和
+            weighted_k = k_values_tensor * weights.unsqueeze(-1)         # 形状 [K, N, D]
+            final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
+            return final_item_rep
+
+        user_tensor = user_rep[user_nodes]
+        k_list = [hidden_v_embed_pos, homo_v_embed_pos, diversity_v_embed_pos, hidden_t_embed_pos, homo_t_embed_pos, diversity_t_embed_pos]
+        pos_item_rep = QKV(user_tensor, k_list)
+
+        k_list = [hidden_v_embed_neg, homo_v_embed_neg, diversity_v_embed_neg, hidden_t_embed_neg, homo_t_embed_neg, diversity_t_embed_neg] 
+        neg_item_rep = QKV(user_tensor, k_list)
+    
+        pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
+        neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
+
+        return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
+
     def bpr_loss(self, users, pos_items, neg_items):
         pos_scores = torch.sum(torch.mul(users, pos_items), dim=1)
         neg_scores = torch.sum(torch.mul(users, neg_items), dim=1)
@@ -197,9 +353,8 @@ class FREEDOM(GeneralRecommender):
         u_g_embeddings = ua_embeddings[users]
         pos_i_g_embeddings = ia_embeddings[pos_items]
         neg_i_g_embeddings = ia_embeddings[neg_items]
+        batch_mf_loss = self.bpr_loss(u_g_embeddings, pos_i_g_embeddings, neg_i_g_embeddings)
 
-        batch_mf_loss = self.bpr_loss(u_g_embeddings, pos_i_g_embeddings,
-                                                                      neg_i_g_embeddings)
         mf_v_loss, mf_t_loss = 0.0, 0.0
         if self.t_feat is not None:
             text_feats = self.text_trs(self.text_embedding.weight)
@@ -207,6 +362,16 @@ class FREEDOM(GeneralRecommender):
         if self.v_feat is not None:
             image_feats = self.image_trs(self.image_embedding.weight)
             mf_v_loss = self.bpr_loss(ua_embeddings[users], image_feats[pos_items], image_feats[neg_items])
+
+        # dragon
+        user = interaction[0]
+        pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver = self.forward_new(interaction)
+        # pos_scores, neg_scores = self.forward(interaction)
+        loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
+        align_loss = self.v_t_align_loss(v_homo, t_homo) # 同质信息对齐
+        diver_loss = self.v_t_diver_loss(v_diver, t_diver)
+        # return loss_value + reg_loss + align_loss + diver_loss
+
         return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
 
     def full_sort_predict(self, interaction):
@@ -219,3 +384,145 @@ class FREEDOM(GeneralRecommender):
         scores = torch.matmul(u_embeddings, restore_item_e.transpose(0, 1))
         return scores
 
+    def v_t_align_loss(self,v_rep,t_rep):
+        def mmd_linear(t_rep, v_rep):
+            """线性时间MMD近似"""
+            mean_t = t_rep.mean(0)
+            mean_v = v_rep.mean(0)
+            mean_diff = (mean_t - mean_v).pow(2).sum()
+            return mean_diff
+        return mmd_linear(v_rep,t_rep)
+    
+    def v_t_diver_loss(self,v_rep,t_rep):
+        # 这里是PAMD原始论文的做法
+        dot_prod = torch.sum(torch.mul(v_rep, t_rep), dim=1)
+        L_ort = torch.mean(dot_prod ** 2, dim=0)
+
+        # 我突然想到这里也可以考虑同样的类似于MMD的方法，可以先取均值，再进行计算,如有必要,可以开放下面的部分:
+        # # 计算两个模态的均值向量
+        # mean_t = t_rep.mean(dim=0)  # [dim_latent]
+        # mean_v = v_rep.mean(dim=0)  # [dim_latent]
+        # mean_t = mean_t.squeeze()
+        # mean_v = mean_v.squeeze()
+        # # 计算内积的平方
+        # dot_prod = torch.dot(mean_t, mean_v)  # 标量值
+        # L_ort = dot_prod ** 2  # 内积的平方
+        # # pdb.set_trace()
+        return L_ort
+
+    def diversity_constraint(self, diver_rep):
+        """
+        对多样性信息进行数值约束，防止过大/过小
+        使用自适应梯度缩放技术，保持梯度流
+        """
+        # 1. 计算当前多样性信息的统计量
+        rep_mean = diver_rep.mean()
+        rep_std = diver_rep.std()
+        
+        # 2. 设置约束范围（可配置为超参数）
+        clip_range = 2.0  # 标准差倍数范围
+        
+        # 3. 计算裁剪边界
+        lower_bound = rep_mean - clip_range * rep_std
+        upper_bound = rep_mean + clip_range * rep_std
+        
+        # 4. 使用torch.clamp进行裁剪
+        clipped_rep = torch.clamp(diver_rep, min=lower_bound, max=upper_bound)
+        
+        # 5. 保持原始梯度（梯度重定向）
+        return diver_rep + (clipped_rep - diver_rep).detach()
+
+    def apply_resnet_blocks(self, rep, res_blocks):
+        """应用多层残差块进行特征融合"""
+        residual = rep
+        for block in res_blocks:
+            # 特征变换
+            transformed = block(residual)
+            
+            # 残差连接
+            residual = residual + transformed
+        
+        return residual
+
+class GCN(torch.nn.Module):
+    def __init__(self, user_embedding, n_users, num_item, aggr_mode,
+                 feat_embed_dim=None, device=None, use_mlp=False):
+        super(GCN, self).__init__()
+        self.user_embedding = user_embedding
+        self.n_users = n_users
+        self.num_item = num_item
+        self.aggr_mode = aggr_mode
+        self.feat_embed_dim = feat_embed_dim
+        self.device = device
+        self.use_mlp = use_mlp
+
+        self.user_embedding.to(self.device)
+        if use_mlp:
+            self.linear_1 = nn.Linear(self.feat_embed_dim, 4 * self.feat_embed_dim)
+            self.linear_2 = nn.Linear(4 * self.feat_embed_dim, self.feat_embed_dim)
+        self.conv_embed_1 = BaseGcn(self.feat_embed_dim, self.feat_embed_dim, aggr=self.aggr_mode)
+
+    def forward(self, edge_index, features):
+        # features: item multimodal feature
+        if self.use_mlp:
+            temp_features = self.linear_1(F.leaky_relu(self.MLP(features)))
+        else:
+            temp_features = features
+        x = torch.cat((self.user_embedding, temp_features), dim=0).to(self.device)
+        # x: user + item
+        x = F.normalize(x).to(self.device)
+        h = self.conv_embed_1(x, edge_index)  # equation 1
+        h_1 = self.conv_embed_1(h, edge_index)
+        x_hat = h + x + h_1
+        return x_hat, self.user_embedding
+
+
+class BaseGcn(MessagePassing):
+    def __init__(self, in_channels, out_channels, normalize=True, bias=True, aggr='add', **kwargs):
+        super(BaseGcn, self).__init__(aggr=aggr, **kwargs)
+        self.aggr = aggr
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+
+    def forward(self, x, edge_index, size=None):
+        if size is None:
+            edge_index, _ = remove_self_loops(edge_index)
+        x = x.unsqueeze(-1) if x.dim() == 1 else x
+        return self.propagate(edge_index, size=(x.size(0), x.size(0)), x=x)
+
+    def message(self, x_j, edge_index, size):
+        if self.aggr == 'add':
+            row, col = edge_index
+            deg = degree(row, size[0], dtype=x_j.dtype)
+            deg_inv_sqrt = deg.pow(-0.5)
+            norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
+            return norm.view(-1, 1) * x_j
+        return x_j
+
+    def update(self, aggr_out):
+        return aggr_out
+
+    def __repr(self):
+        return '{}({},{})'.format(self.__class__.__name__, self.in_channels, self.out_channels)
+
+
+class FFN(torch.nn.Module):
+    def __init__(self, hidden_size, inner_hidden_size=None,
+                 bias=True, activation=nn.ReLU):
+        super(FFN, self).__init__()
+        self.hidden_size = hidden_size
+        if inner_hidden_size is None:
+            inner_hidden_size = 4 * hidden_size
+        self.inner_hidden_size = inner_hidden_size
+        self.layers = torch.nn.Sequential(
+            torch.nn.Linear(self.hidden_size, self.inner_hidden_size, bias=bias),
+            activation(),
+            torch.nn.Linear(self.inner_hidden_size, self.hidden_size, bias=bias),
+        )
+
+    def forward(self, hidden_states):
+        """
+        hidden_states: [item_num,hidden_size]
+        """
+        output = self.layers(hidden_states)
+        return output
