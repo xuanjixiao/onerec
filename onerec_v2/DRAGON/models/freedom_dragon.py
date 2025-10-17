@@ -21,9 +21,9 @@ from common.loss import BPRLoss, EmbLoss, L2Loss
 from utils.utils import build_sim, compute_normalized_laplacian
 
 
-class FREEDOM(GeneralRecommender):
+class FreemDragon(GeneralRecommender):
     def __init__(self, config, dataset):
-        super(FREEDOM, self).__init__(config, dataset)
+        super(FreemDragon, self).__init__(config, dataset)
 
         self.embedding_dim = config['embedding_size']
         self.feat_embed_dim = config['feat_embed_dim']
@@ -41,11 +41,16 @@ class FREEDOM(GeneralRecommender):
         # dragon特有参数
         self.aggr_mode = config['aggr_mode']
         self.num_blocks = config['res_block_num']  # 残差块的数量
+        self.v_weight = config['v_weight']
+        self.t_weight = 1 - self.v_weight
 
         self.n_nodes = self.n_users + self.n_items
 
         # load dataset info
         self.interaction_matrix = dataset.inter_matrix(form='coo').astype(np.float32)
+        self.user_graph_dict = np.load(os.path.join(dataset_path, config['user_graph_dict_file']),
+                                       allow_pickle=True).item()
+        
         self.norm_adj = self.get_norm_adj_mat().to(self.device)
         self.masked_adj, self.mm_adj = None, None
         self.edge_indices, self.edge_values = self.get_edge_info()
@@ -63,6 +68,14 @@ class FREEDOM(GeneralRecommender):
 
         nn.init.xavier_uniform_(self.user_embedding.weight)
         nn.init.xavier_uniform_(self.item_id_embedding.weight)
+
+        # sota v1
+        self.weight_u = nn.Parameter(nn.init.xavier_normal_(
+            torch.tensor(np.random.randn(self.num_user, 2, 1), dtype=torch.float32, requires_grad=True)))
+        self.weight_u.data = F.softmax(self.weight_u, dim=1)
+        self.weight_i = nn.Parameter(nn.init.xavier_normal_(
+            torch.tensor(np.random.randn(self.num_item, 2, 1), dtype=torch.float32, requires_grad=True)))
+        self.weight_i.data = F.softmax(self.weight_i, dim=1)
 
         dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
         mm_adj_file = os.path.join(dataset_path, 'mm_adj_freedomdsp_{}_{}.pt'.format(self.knn_k, int(10*self.mm_image_weight)))
@@ -96,12 +109,20 @@ class FREEDOM(GeneralRecommender):
         if self.t_feat is not None:
             self.t_gcn = GCN(self.user_t_embedding, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
                              device=self.device, use_mlp=False)
+        
+        # sota_v1
+        self.user_graph = UserGraphSample(self.n_users, 'add', self.feat_embed_dim)
 
         # 创建多层映射网络 - 为同质和多样性信息分别定义残差块
         self.v_homo_res_blocks = nn.ModuleList()  # 视觉模态同质信息的残差块
         self.v_diver_res_blocks = nn.ModuleList()  # 视觉模态多样性信息的残差块
         self.t_homo_res_blocks = nn.ModuleList()  # 文本模态同质信息的残差块
         self.t_diver_res_blocks = nn.ModuleList()  # 文本模态多样性信息的残差块
+
+        # sota_v1
+        self.ffn = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
+        self.v_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
+        self.t_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
 
         # 视觉模态的同质信息残差块
         self.v_homo_res_blocks = [
@@ -205,6 +226,52 @@ class FREEDOM(GeneralRecommender):
         cols_inv_sqrt = c_inv_sqrt[indices[1]]
         values = rows_inv_sqrt * cols_inv_sqrt
         return values
+
+    def pre_epoch_processing(self):
+        # sota_v1
+        self.epoch_user_graph, self.user_weight_matrix = self.topk_sample(self.k)
+        self.user_weight_matrix = self.user_weight_matrix.to(self.device)
+
+    def topk_sample(self, k):
+        # sota_v1
+        user_graph_index = []
+        count_num = 0
+        user_weight_matrix = torch.zeros(len(self.user_graph_dict), k)
+        tasike = []
+        for i in range(k):
+            tasike.append(0)
+        for i in range(len(self.user_graph_dict)):
+            if len(self.user_graph_dict[i][0]) < k:
+                count_num += 1
+                if len(self.user_graph_dict[i][0]) == 0:
+                    # pdb.set_trace()
+                    user_graph_index.append(tasike)
+                    continue
+                user_graph_sample = self.user_graph_dict[i][0][:k]
+                user_graph_weight = self.user_graph_dict[i][1][:k]
+                while len(user_graph_sample) < k:
+                    rand_index = np.random.randint(0, len(user_graph_sample))
+                    user_graph_sample.append(user_graph_sample[rand_index])
+                    user_graph_weight.append(user_graph_weight[rand_index])
+                user_graph_index.append(user_graph_sample)
+
+                if self.user_aggr_mode == 'softmax':
+                    user_weight_matrix[i] = F.softmax(torch.tensor(user_graph_weight), dim=0)  # softmax
+                if self.user_aggr_mode == 'mean':
+                    user_weight_matrix[i] = torch.ones(k) / k  # mean
+                continue
+            user_graph_sample = self.user_graph_dict[i][0][:k]
+            user_graph_weight = self.user_graph_dict[i][1][:k]
+
+            if self.user_aggr_mode == 'softmax':
+                user_weight_matrix[i] = F.softmax(torch.tensor(user_graph_weight), dim=0)  # softmax
+            if self.user_aggr_mode == 'mean':
+                user_weight_matrix[i] = torch.ones(k) / k  # mean
+            user_graph_index.append(user_graph_sample)
+
+        # pdb.set_trace()
+        return user_graph_index, user_weight_matrix
+
 
     def pack_edge_index(self, inter_mat):
         rows = inter_mat.row
@@ -362,17 +429,22 @@ class FREEDOM(GeneralRecommender):
         if self.v_feat is not None:
             image_feats = self.image_trs(self.image_embedding.weight)
             mf_v_loss = self.bpr_loss(ua_embeddings[users], image_feats[pos_items], image_feats[neg_items])
+        # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
 
         # dragon
-        user = interaction[0]
-        pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver = self.forward_new(interaction)
-        # pos_scores, neg_scores = self.forward(interaction)
-        loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
-        align_loss = self.v_t_align_loss(v_homo, t_homo) # 同质信息对齐
-        diver_loss = self.v_t_diver_loss(v_diver, t_diver)
-        # return loss_value + reg_loss + align_loss + diver_loss
+        pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter = self.forward_v1(interaction)
+        dragon_v1_loss = self.calculate_dragon_v1(users, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter)
+        
+        return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + dragon_v1_loss
 
-        return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
+    def calculate_dragon_v1(self, user, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter):
+        loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
+        reg_embedding_loss_v = (self.v_preference[user] ** 2).mean() if self.v_preference is not None else 0.0
+        reg_embedding_loss_t = (self.t_preference[user] ** 2).mean() if self.t_preference is not None else 0.0
+        reg_loss = self.reg_weight * (reg_embedding_loss_v + reg_embedding_loss_t)
+        reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
+        align_loss1 = self.v_t_align_loss(v_rep,t_rep)
+        return loss_value + reg_loss + align_loss1
 
     def full_sort_predict(self, interaction):
         user = interaction[0]
@@ -443,6 +515,88 @@ class FREEDOM(GeneralRecommender):
             residual = residual + transformed
         
         return residual
+    
+    def forward_v1(self, interaction):
+        user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
+        pos_item_nodes += self.n_users
+        neg_item_nodes += self.n_users
+
+        if self.v_feat is not None:
+            self.v_rep, self.v_preference = self.v_gcn(self.edge_index, self.v_feat)
+        if self.t_feat is not None:
+            self.t_rep, self.t_preference = self.t_gcn(self.edge_index, self.t_feat)
+
+        v_rep = self.v_rep[self.n_users:]
+        t_rep = self.t_rep[self.n_users:]
+
+        # ****************** 同质信息的处理， 实验中可以放开这部分 ******************
+        t_h = t_rep
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, t_h)
+        t_item_rep = t_h + h
+
+        t_user_rep = self.t_rep[:self.n_users]
+        h_u1 = self.user_graph(t_user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        t_user_rep = t_user_rep + h_u1
+
+
+        v_h = v_rep
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, v_h)
+        v_item_rep = v_h + h
+
+        # user_matrix.shape torch.Size([19445, 1, 40]), u_features.shape. torch.Size([19445, 40, 64, 1]) 
+        # ok: user_matrix: torch.Size([19445, 1, 40]) u_features.shape. torch.Size([19445, 40, 128]) 
+        v_user_rep = self.v_rep[:self.n_users]
+        h_u1 = self.user_graph(v_user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        v_user_rep = v_user_rep + h_u1
+
+        t_user_rep = torch.unsqueeze(t_user_rep, 2)
+        v_user_rep = torch.unsqueeze(v_user_rep, 2)
+        user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
+        user_rep = torch.squeeze(user_rep)
+
+        v_rep_mlp = self.v_mlp(v_rep)
+        t_rep_mlp = self.t_mlp(t_rep)
+        v_rep = v_rep + v_rep_mlp
+        t_rep = t_rep + t_rep_mlp
+
+        item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
+
+        self.result_embed = torch.cat((user_rep, item_rep), dim=0)
+
+        user_tensor = self.result_embed[user_nodes]
+        pos_item_tensor = self.result_embed[pos_item_nodes]
+        neg_item_tensor = self.result_embed[neg_item_nodes]
+        v_inter = torch.cat([v_rep[pos_item_nodes],v_rep[neg_item_nodes]],dim=0)
+        t_inter = torch.cat([t_rep[pos_item_nodes],t_rep[neg_item_nodes]],dim=0)
+
+        diversity_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+
+        diversity_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
+
+        def QKV(user_tensor, k_list):
+            k_values_tensor = torch.stack(k_list)
+            # 步骤1：计算相似度得分（原始注意力分数）
+            sim_scores = torch.einsum('nd,knd->kn', user_tensor, k_values_tensor)  # 形状 [K, N]
+            # 步骤2：沿K维度对分数做Softmax归一化
+            weights = torch.softmax(sim_scores, dim=0)     # 形状 [K, N]
+            # 步骤3：对k向量加权并沿K维度求和
+            weighted_k = k_values_tensor * weights.unsqueeze(-1)         # 形状 [K, N, D]
+            final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
+            return final_item_rep
+
+        k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
+        pos_item_rep = QKV(user_tensor, k_list)
+
+        k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
+        neg_item_rep = QKV(user_tensor, k_list)
+        pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
+        neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
+        return pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter
+
 
 class GCN(torch.nn.Module):
     def __init__(self, user_embedding, n_users, num_item, aggr_mode,
@@ -526,3 +680,20 @@ class FFN(torch.nn.Module):
         """
         output = self.layers(hidden_states)
         return output
+
+
+class UserGraphSample(torch.nn.Module):
+    """ sota_v1 """
+    def __init__(self, num_user, aggr_mode, feat_embed_dim):
+        super(UserGraphSample, self).__init__()
+        self.num_user = num_user
+        self.feat_embed_dim = feat_embed_dim
+        self.aggr_mode = aggr_mode
+
+    def forward(self, features, user_graph, user_matrix):
+        index = user_graph
+        u_features = features[index]
+        user_matrix = user_matrix.unsqueeze(1)
+        u_pre = torch.matmul(user_matrix, u_features)
+        u_pre = u_pre.squeeze()
+        return u_pre
