@@ -43,6 +43,7 @@ class DRAGON(GeneralRecommender):
         self.user_aggr_mode = 'softmax'
         self.num_blocks = config['res_block_num']  # 残差块的数量
         self.v_weight = config['v_weight']
+        self.dragon_weight = config['dragon_weight']
         self.t_weight = 1 - self.v_weight
         self.k = 40
 
@@ -59,7 +60,7 @@ class DRAGON(GeneralRecommender):
         self.masked_adj, self.mm_adj = None, None
         self.edge_indices, self.edge_values = self.get_edge_info()
         self.edge_indices, self.edge_values = self.edge_indices.to(self.device), self.edge_values.to(self.device)
-        self.edge_full_indices = torch.arange(self.edge_values.size(0)).to(self.device)
+        # self.edge_full_indices = torch.arange(self.edge_values.size(0)).to(self.device)
 
         edge_index = self.pack_edge_index(self.interaction_matrix)
         self.edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous().to(self.device)
@@ -69,9 +70,12 @@ class DRAGON(GeneralRecommender):
         self.item_id_embedding = nn.Embedding(self.n_items, self.embedding_dim)
         self.user_t_embedding = nn.Embedding(self.n_users, self.embedding_dim)
         self.user_v_embedding = nn.Embedding(self.n_users, self.embedding_dim)
-
         nn.init.xavier_uniform_(self.user_embedding.weight)
         nn.init.xavier_uniform_(self.item_id_embedding.weight)
+        
+        self.preference = nn.Parameter(nn.init.xavier_normal_(torch.tensor(
+                np.random.randn(self.n_users, self.feat_embed_dim), dtype=torch.float32, requires_grad=True),
+                gain=1).to(self.device))
 
         # sota v1
         self.weight_u = nn.Parameter(nn.init.xavier_normal_(
@@ -108,10 +112,10 @@ class DRAGON(GeneralRecommender):
 
         self.user_mlp_layer = nn.Linear(self.feat_embed_dim * 2, self.feat_embed_dim)
         if self.v_feat is not None:            
-            self.v_gcn = GCN(self.user_v_embedding, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
+            self.v_gcn = GCN(self.preference, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
                              device=self.device, use_mlp=False)  # 256)
         if self.t_feat is not None:
-            self.t_gcn = GCN(self.user_t_embedding, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
+            self.t_gcn = GCN(self.preference, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
                              device=self.device, use_mlp=False)
         
         # sota_v1
@@ -206,6 +210,9 @@ class DRAGON(GeneralRecommender):
         return torch.sparse.FloatTensor(i, data, torch.Size((self.n_nodes, self.n_nodes)))
 
     def pre_epoch_processing(self):
+        self.epoch_user_graph, self.user_weight_matrix = self.topk_sample(self.k)
+        self.user_weight_matrix = self.user_weight_matrix.to(self.device)
+    
         if self.dropout <= .0:
             self.masked_adj = self.norm_adj
             return
@@ -311,14 +318,14 @@ class DRAGON(GeneralRecommender):
 
     def forward_new(self, interaction):
         # dragon
-        user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
-        pos_item_nodes += self.n_users
-        neg_item_nodes += self.n_users
+        user_nodes, raw_pos_item_nodes, raw_neg_item_nodes = interaction[0], interaction[1], interaction[2]
+        pos_item_nodes = raw_pos_item_nodes + self.n_users
+        neg_item_nodes = raw_neg_item_nodes + self.n_users
 
         if self.v_feat is not None:
-            self.v_rep, _ = self.v_gcn(self.edge_index, self.v_feat)
+            self.v_rep, _ = self.v_gcn(self.edge_index, self.image_trs(self.v_feat))
         if self.t_feat is not None:
-            self.t_rep, _ = self.t_gcn(self.edge_index, self.t_feat)
+            self.t_rep, _ = self.t_gcn(self.edge_index, self.text_trs(self.t_feat))
 
         v_rep = self.v_rep[self.num_user:]
         t_rep = self.t_rep[self.num_user:]
@@ -404,7 +411,9 @@ class DRAGON(GeneralRecommender):
         pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
         neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
 
-        return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
+        # return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
+        return user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, t_diver, v_diver
+
 
     def bpr_loss(self, users, pos_items, neg_items):
         pos_scores = torch.sum(torch.mul(users, pos_items), dim=1)
@@ -438,21 +447,22 @@ class DRAGON(GeneralRecommender):
         # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
 
         # dragon
-        # pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter = self.forward_v1(interaction)
-        # dragon_v1_loss = self.calculate_dragon_v1(users, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter)
-        
-        # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + dragon_v1_loss
-        return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
+        # user_tensor, pos_item_rep, neg_item_rep, t_rep, v_rep, v_inter, t_inter = self.forward_v1(interaction)
+        user_tensor, pos_item_rep, neg_item_rep, t_rep, v_rep = self.forward_v1(interaction)
+        dragon_v1_loss = self.calculate_dragon_loss_v1(users, user_tensor, pos_item_rep, neg_item_rep, t_rep, v_rep)
+        # user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, t_diver, v_diver = self.forward_new(interaction)
+        # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
+        return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + self.dragon_weight * dragon_v1_loss
 
 
-    def calculate_dragon_v1(self, user, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter):
-        loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
-        reg_embedding_loss_v = (self.v_preference[user] ** 2).mean() if self.v_preference is not None else 0.0
-        reg_embedding_loss_t = (self.t_preference[user] ** 2).mean() if self.t_preference is not None else 0.0
+    def calculate_dragon_loss_v1(self, users, user_tensor, pos_item_rep, neg_item_rep, t_rep, v_rep, v_inter=None, t_inter=None):
+        loss_value = self.bpr_loss(user_tensor, pos_item_rep, neg_item_rep)
+        reg_embedding_loss_v = (self.v_preference[users] ** 2).mean() if self.v_preference is not None else 0.0
+        reg_embedding_loss_t = (self.t_preference[users] ** 2).mean() if self.t_preference is not None else 0.0
         reg_loss = self.reg_weight * (reg_embedding_loss_v + reg_embedding_loss_t)
         reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
         align_loss1 = self.v_t_align_loss(v_rep,t_rep)
-        return loss_value + reg_loss + align_loss1
+        return loss_value + 0.01 * reg_loss + 0.01 * align_loss1
 
     def full_sort_predict(self, interaction):
         user = interaction[0]
@@ -525,14 +535,15 @@ class DRAGON(GeneralRecommender):
         return residual
     
     def forward_v1(self, interaction):
-        user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
-        pos_item_nodes += self.n_users
-        neg_item_nodes += self.n_users
+        user_nodes, raw_pos_item_nodes, raw_neg_item_nodes = interaction[0], interaction[1], interaction[2]
+        pos_item_nodes = raw_pos_item_nodes + self.n_users
+        neg_item_nodes = raw_neg_item_nodes + self.n_users
+
 
         if self.v_feat is not None:
-            self.v_rep, self.v_preference = self.v_gcn(self.edge_index, self.v_feat)
+            self.v_rep, self.v_preference = self.v_gcn(self.edge_index, self.image_trs(self.v_feat))
         if self.t_feat is not None:
-            self.t_rep, self.t_preference = self.t_gcn(self.edge_index, self.t_feat)
+            self.t_rep, self.t_preference = self.t_gcn(self.edge_index, self.text_trs(self.t_feat))
 
         v_rep = self.v_rep[self.n_users:]
         t_rep = self.t_rep[self.n_users:]
@@ -576,8 +587,11 @@ class DRAGON(GeneralRecommender):
         user_tensor = self.result_embed[user_nodes]
         pos_item_tensor = self.result_embed[pos_item_nodes]
         neg_item_tensor = self.result_embed[neg_item_nodes]
-        v_inter = torch.cat([v_rep[pos_item_nodes],v_rep[neg_item_nodes]],dim=0)
-        t_inter = torch.cat([t_rep[pos_item_nodes],t_rep[neg_item_nodes]],dim=0)
+
+        # v_inter_embed = torch.cat((user_rep, v_rep), dim=0)
+        # t_inter_embed = torch.cat((user_rep, t_rep), dim=0)
+        # v_inter = torch.cat([v_inter_embed[pos_item_nodes],v_inter_embed[neg_item_nodes]],dim=0)
+        # t_inter = torch.cat([t_inter_embed[pos_item_nodes],t_inter_embed[neg_item_nodes]],dim=0)
 
         diversity_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
         diversity_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
@@ -601,9 +615,12 @@ class DRAGON(GeneralRecommender):
 
         k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
         neg_item_rep = QKV(user_tensor, k_list)
+
         pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
         neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
-        return pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter
+        # return pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter
+        return user_tensor, pos_item_rep, neg_item_rep, t_rep, v_rep
+        # return user_tensor, pos_item_rep, neg_item_rep, t_rep, v_rep, v_inter, t_inter
 
 
 class GCN(torch.nn.Module):
@@ -627,9 +644,13 @@ class GCN(torch.nn.Module):
     def forward(self, edge_index, features):
         # features: item multimodal feature
         if self.use_mlp:
-            temp_features = self.linear_1(F.leaky_relu(self.MLP(features)))
+            temp_features = F.leaky_relu(self.linear_1(features))
+            temp_features = F.leaky_relu(self.linear_2(temp_features))
+
         else:
             temp_features = features
+        # print("user.embedding.weight.shape: ", self.user_embedding.weight.shape)
+        # print("tempp_features.shape", temp_features.shape)
         x = torch.cat((self.user_embedding, temp_features), dim=0).to(self.device)
         # x: user + item
         x = F.normalize(x).to(self.device)
@@ -675,7 +696,8 @@ class FFN(torch.nn.Module):
         self.hidden_size = hidden_size
         if inner_hidden_size is None:
             inner_hidden_size = 4 * hidden_size
-        self.inner_hidden_size = inner_hidden_size
+        else:
+            self.inner_hidden_size = inner_hidden_size
         self.layers = torch.nn.Sequential(
             torch.nn.Linear(self.hidden_size, self.inner_hidden_size, bias=bias),
             activation(),
