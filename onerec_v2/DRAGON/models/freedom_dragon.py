@@ -21,9 +21,9 @@ from common.loss import BPRLoss, EmbLoss, L2Loss
 from utils.utils import build_sim, compute_normalized_laplacian
 
 
-class DRAGON(GeneralRecommender):
+class FreemDragon(GeneralRecommender):
     def __init__(self, config, dataset):
-        super(DRAGON, self).__init__(config, dataset)
+        super(FreemDragon, self).__init__(config, dataset)
 
         self.embedding_dim = config['embedding_size']
         self.feat_embed_dim = config['feat_embed_dim']
@@ -37,23 +37,19 @@ class DRAGON(GeneralRecommender):
         self.mm_image_weight = config['mm_image_weight']
         self.dropout = config['dropout']
         self.degree_ratio = config['degree_ratio']
-        dataset_path = config['dataset_path']
+
         # dragon特有参数
         self.aggr_mode = config['aggr_mode']
-        self.user_aggr_mode = 'softmax'
         self.num_blocks = config['res_block_num']  # 残差块的数量
         self.v_weight = config['v_weight']
         self.t_weight = 1 - self.v_weight
-        self.k = 40
 
         self.n_nodes = self.n_users + self.n_items
 
         # load dataset info
         self.interaction_matrix = dataset.inter_matrix(form='coo').astype(np.float32)
-        dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
         self.user_graph_dict = np.load(os.path.join(dataset_path, config['user_graph_dict_file']),
                                        allow_pickle=True).item()
-       
         
         self.norm_adj = self.get_norm_adj_mat().to(self.device)
         self.masked_adj, self.mm_adj = None, None
@@ -75,10 +71,10 @@ class DRAGON(GeneralRecommender):
 
         # sota v1
         self.weight_u = nn.Parameter(nn.init.xavier_normal_(
-            torch.tensor(np.random.randn(self.n_users, 2, 1), dtype=torch.float32, requires_grad=True)))
+            torch.tensor(np.random.randn(self.num_user, 2, 1), dtype=torch.float32, requires_grad=True)))
         self.weight_u.data = F.softmax(self.weight_u, dim=1)
         self.weight_i = nn.Parameter(nn.init.xavier_normal_(
-            torch.tensor(np.random.randn(self.n_items, 2, 1), dtype=torch.float32, requires_grad=True)))
+            torch.tensor(np.random.randn(self.num_item, 2, 1), dtype=torch.float32, requires_grad=True)))
         self.weight_i.data = F.softmax(self.weight_i, dim=1)
 
         dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
@@ -86,10 +82,10 @@ class DRAGON(GeneralRecommender):
 
         if self.v_feat is not None:
             self.image_embedding = nn.Embedding.from_pretrained(self.v_feat, freeze=False)
-            self.image_trs = nn.Linear(self.v_feat.shape[1], self.embedding_dim)
+            self.image_trs = nn.Linear(self.v_feat.shape[1], self.feat_embed_dim)
         if self.t_feat is not None:
             self.text_embedding = nn.Embedding.from_pretrained(self.t_feat, freeze=False)
-            self.text_trs = nn.Linear(self.t_feat.shape[1], self.embedding_dim)
+            self.text_trs = nn.Linear(self.t_feat.shape[1], self.feat_embed_dim)
 
         if os.path.exists(mm_adj_file):
             self.mm_adj = torch.load(mm_adj_file)
@@ -124,27 +120,25 @@ class DRAGON(GeneralRecommender):
         self.t_diver_res_blocks = nn.ModuleList()  # 文本模态多样性信息的残差块
 
         # sota_v1
-        self.ffn = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True)
-        self.v_mlp = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True)
-        self.t_mlp = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True)
+        self.ffn = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
+        self.v_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
+        self.t_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
 
-        for i in range(self.num_blocks):
-            # 视觉模态的同质信息残差块
-            self.v_homo_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
-            # 视觉模态的多样性信息残差块
-            self.v_diver_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
-            # 文本模态的同质信息残差块
-            self.t_homo_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
-            # 文本模态的多样性信息残差块
-            self.t_diver_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
+        # 视觉模态的同质信息残差块
+        self.v_homo_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        # 视觉模态的多样性信息残差块
+        self.v_diver_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        
+        # 文本模态的同质信息残差块
+        self.t_homo_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        
+        # 文本模态的多样性信息残差块
+        self.t_diver_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+
         # 添加初始的同质/多样性分离层
         self.v_homo_map = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, 
                             bias=True, activation=nn.ReLU)
@@ -233,7 +227,7 @@ class DRAGON(GeneralRecommender):
         values = rows_inv_sqrt * cols_inv_sqrt
         return values
 
-    def pre_epoch_processing_dragon_v1(self):
+    def pre_epoch_processing(self):
         # sota_v1
         self.epoch_user_graph, self.user_weight_matrix = self.topk_sample(self.k)
         self.user_weight_matrix = self.user_weight_matrix.to(self.device)
@@ -438,12 +432,10 @@ class DRAGON(GeneralRecommender):
         # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
 
         # dragon
-        # pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter = self.forward_v1(interaction)
-        # dragon_v1_loss = self.calculate_dragon_v1(users, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter)
+        pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter = self.forward_v1(interaction)
+        dragon_v1_loss = self.calculate_dragon_v1(users, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter)
         
-        # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + dragon_v1_loss
-        return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
-
+        return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + dragon_v1_loss
 
     def calculate_dragon_v1(self, user, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter):
         loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
