@@ -24,9 +24,9 @@ if __name__ == '__main__':
         #'reg_weight': [0.0001,0.00001],
         #'n_layers': [2],
         #'reg_weight': [0.01],
-        'learning_rate': [0.0001],
-        'reg_weight': [0.001],
-        'gpu_id': 0,
+        # 'learning_rate': [0.0001],
+        # 'reg_weight': [0.001],
+        # 'gpu_id': 0,
     }
 
     args, _ = parser.parse_known_args()
@@ -34,4 +34,4 @@ if __name__ == '__main__':
     quick_start(model=args.model, dataset=args.dataset, config_dict=config_dict, save_model=True)
 
 
-# nohup python main.py --dataset baby >log/test.log 2>&1 &
+# nohup python main.py --dataset baby >log/test_add_dragonv3.log 2>&1 &

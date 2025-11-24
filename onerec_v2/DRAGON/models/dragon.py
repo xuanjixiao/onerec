@@ -36,6 +36,12 @@ class DRAGON(GeneralRecommender):
         self.num_blocks = config['res_block_num']  # 残差块的数量
         self.v_weight = config['v_weight']
         self.dragon_weight = config['dragon_weight']
+
+        self.mix_bpr_weight_loss = config['mix_bpr_weight_loss']
+        self.dragon_bpr_weight = config['dragon_bpr_weight']
+        self.align_weight_loss = config['align_weight_loss']
+        self.diver_weight_loss = config['diver_weight_loss']
+
         self.t_weight = 1 - self.v_weight
         self.k = 40
 
@@ -445,60 +451,68 @@ class DRAGON(GeneralRecommender):
 
         # dragon
         user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, t_diver, v_diver = self.forward_v2(interaction)
-        dragon_v2_loss = self.calculate_loss_v2(users, user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, t_diver, v_diver)
-
-        multi_loss = self.multi_bpr_loss(u_g_embeddings, pos_i_g_embeddings, neg_i_g_embeddings, user_tensor, pos_item_rep, neg_item_rep)
 
 
-        # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
-        return multi_loss + batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + self.dragon_weight * dragon_v2_loss
-
-
-    def calculate_loss_v2(self, users, user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, v_inter=None, t_inter=None):
-        loss_value = self.bpr_loss(user_tensor, pos_item_rep, neg_item_rep)
+        dragon_bpr_loss = self.bpr_loss(user_tensor, pos_item_rep, neg_item_rep)
         align_loss1 = self.v_t_align_loss(v_homo, t_homo)
-        return loss_value + 0.01 * align_loss1
+        # diver_loss = self.v_t_diver_loss(t_diver, v_diver)
+
+        # bpr loss + align loss + diver loss
+
+        # multi-bpr score loss
+        # self.modal_weight_loss = 0.001
+        mix_bpr_score_loss = self.multi_bpr_loss(u_g_embeddings, pos_i_g_embeddings, neg_i_g_embeddings, user_tensor, pos_item_rep, neg_item_rep)
+
+        # sum_loss = batch_mf_loss \
+        #     + self.reg_weight * (mf_t_loss + mf_v_loss) \
+        #     + self.mix_bpr_weight_loss * mix_bpr_score_loss \
+        #     + self.dragon_bpr_weight * dragon_bpr_loss \
+        #     + self.align_weight_loss * align_loss1 \
+        #     + self.diver_weight_loss * diver_loss
+        sum_loss = batch_mf_loss \
+            + self.reg_weight * (mf_t_loss + mf_v_loss) \
+            + self.mix_bpr_weight_loss * mix_bpr_score_loss \
+            + self.dragon_bpr_weight * dragon_bpr_loss \
+            + self.align_weight_loss * align_loss1
+        return sum_loss
+
+        # return multi_loss + batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + self.dragon_weight * dragon_v2_loss
+
 
     def full_sort_predict(self, interaction):
         user = interaction[0]
 
         restore_user_e, restore_item_e = self.forward(self.norm_adj)
-        u_embeddings = restore_user_e[user]
+        u_embeddings = restore_user_e[user]                         # [N, D]
+        scores = torch.matmul(u_embeddings, restore_item_e.t())     # [N, M]
 
-        # user_embedding: torch.Size([4096, 64])
-        # restore_item_e: torch.Size([7050, 64])
-        
-        print("user_embedding:", u_embeddings.shape)
-        print("restore_item_e:", restore_item_e.shape)
-        # dot with all item embedding to accelerate
-        scores = torch.matmul(u_embeddings, restore_item_e.transpose(0, 1))
-        # return scores
-    
+        # 1 user-interact -- embedding
+        # 2 modal -- embedding   -> score
+
+        # ---------------- 多模态部分 ----------------
+        user_tensor = self.modal_user_rep[user]   # [N, D]
+        k_list = [self.v_item_rep, self.v_homo, self.v_diver,
+                self.t_item_rep, self.t_homo, self.t_diver]  # 每个 [M, D]
+
         def QKV(user_tensor, k_list):
-            k_values_tensor = torch.stack(k_list)
-            # print("k_values_tensor:", k_values_tensor.shape)
+            # k_values_tensor: [K, M, D]
+            k_values_tensor = torch.stack(k_list, dim=0)
 
-            # remapped shapes [original->remapped]: [4096, 64]->[1, 4096, 64] [6, 7050, 64]->[6, 7050, 64]
-            # user_tesnor.shape: torch.Size([4096, 64])
-            # v_item_rep.shape: torch.Size([7050, 64])
+            # 得到每个模态 k、每个 item m 的注意力分数
+            sim_scores = torch.einsum('nd,kmd->km', user_tensor, k_values_tensor)  # [K, M]
 
-            # 步骤1：计算相似度得分（原始注意力分数）
-            sim_scores = torch.einsum('nd,kmd->knm', user_tensor, k_values_tensor)  # 形状 [K, N]
-            # 步骤2：沿K维度对分数做Softmax归一化
-            weights = torch.softmax(sim_scores, dim=0)     # 形状 [K, N]
-            # 步骤3：对k向量加权并沿K维度求和
-            weighted_k = k_values_tensor * weights.unsqueeze(-1)         # 形状 [K, N, D]
-            final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
+            # 对 K 维做 softmax
+            weights = torch.softmax(sim_scores, dim=0)          # [K, M]
+
+            # 加权融合模态
+            weighted_k = k_values_tensor * weights.unsqueeze(-1)  # [K, M, D]
+            final_item_rep = torch.sum(weighted_k, dim=0)         # [M, D]
             return final_item_rep
 
-        user_tensor = self.modal_user_rep[user]
-        # user_tesnor.shape: torch.Size([4096, 64])
-        # v_item_rep.shape: torch.Size([7050, 64])
-        k_list = [self.v_item_rep, self.v_homo, self.v_diver, self.t_item_rep, self.t_homo, self.t_diver]
+        item_rep = QKV(user_tensor, k_list)          # [M, D]
+        # print("item_rep:", item_rep.shape)
 
-        item_rep = QKV(user_tensor, k_list)
-        print("item_resp", item_rep.shape)
-        modal_scores = torch.matmul(user_tensor, item_rep)
+        modal_scores = torch.matmul(user_tensor, item_rep.t())  # [N, D] @ [D, M] -> [N, M]
         return scores + modal_scores
 
 

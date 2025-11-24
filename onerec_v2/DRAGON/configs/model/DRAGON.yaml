@@ -26,8 +26,15 @@ lambda_coeff: 0.9
 n_ui_layers: 2
 dropout: 0.8
 # dropout: [0.8, 0.9]
-dragon_weight: [0.5, 0.1, 0.01, 0001]
-hyper_parameters: ["learning_rate", "dragon_weight"]
+# dragon_weight: [0.5, 0.1, 0.01, 0001]
+
+
+mix_bpr_weight_loss: [0.001, 0.01, 0.1, 0.5, 0.8, 1.0, 1.2]
+dragon_bpr_weight: [0.001, 0.01, 0.1, 0.2, 0.5, 0.8, 1.0]
+align_weight_loss: [0.001, 0.01, 0.05, 0.1, 0.2]
+diver_weight_loss: [0.001, 0.01, 0.05, 0.1, 0.2]
+
+hyper_parameters: ["learning_rate", "mix_bpr_weight_loss", "dragon_bpr_weight", "align_weight_loss", "diver_weight_loss"]
 # hyper_parameters: ["mm_image_weight", "k", "u_layers", "n_mm_layers", "knn_k", "aggr_mode", "reg_weight", "learning_rate", "homoge_weight"]
 
 # freedom
