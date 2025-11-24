@@ -1,3 +1,11 @@
+# coding: utf-8
+# @email: enoche.chow@gmail.com
+r"""
+FREEDOM: A Tale of Two Graphs: Freezing and Denoising Graph Structures for Multimodal Recommendation
+# Update: 01/08/2022
+"""
+
+
 import os
 import random
 import numpy as np
@@ -13,9 +21,9 @@ from common.loss import BPRLoss, EmbLoss, L2Loss
 from utils.utils import build_sim, compute_normalized_laplacian
 
 
-class DRAGON(GeneralRecommender):
+class FreemDragon(GeneralRecommender):
     def __init__(self, config, dataset):
-        super(DRAGON, self).__init__(config, dataset)
+        super(FreemDragon, self).__init__(config, dataset)
 
         self.embedding_dim = config['embedding_size']
         self.feat_embed_dim = config['feat_embed_dim']
@@ -29,61 +37,55 @@ class DRAGON(GeneralRecommender):
         self.mm_image_weight = config['mm_image_weight']
         self.dropout = config['dropout']
         self.degree_ratio = config['degree_ratio']
-        dataset_path = config['dataset_path']
+
         # dragon特有参数
         self.aggr_mode = config['aggr_mode']
-        self.user_aggr_mode = 'softmax'
         self.num_blocks = config['res_block_num']  # 残差块的数量
         self.v_weight = config['v_weight']
-        self.dragon_weight = config['dragon_weight']
-
-        self.mix_bpr_weight_loss = config['mix_bpr_weight_loss']
-        self.dragon_bpr_weight = config['dragon_bpr_weight']
-        self.align_weight_loss = config['align_weight_loss']
-        self.diver_weight_loss = config['diver_weight_loss']
-
         self.t_weight = 1 - self.v_weight
-        self.k = 40
 
         self.n_nodes = self.n_users + self.n_items
 
         # load dataset info
         self.interaction_matrix = dataset.inter_matrix(form='coo').astype(np.float32)
-        dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
         self.user_graph_dict = np.load(os.path.join(dataset_path, config['user_graph_dict_file']),
                                        allow_pickle=True).item()
-       
         
         self.norm_adj = self.get_norm_adj_mat().to(self.device)
         self.masked_adj, self.mm_adj = None, None
         self.edge_indices, self.edge_values = self.get_edge_info()
         self.edge_indices, self.edge_values = self.edge_indices.to(self.device), self.edge_values.to(self.device)
-        # self.edge_full_indices = torch.arange(self.edge_values.size(0)).to(self.device)
+        self.edge_full_indices = torch.arange(self.edge_values.size(0)).to(self.device)
 
         edge_index = self.pack_edge_index(self.interaction_matrix)
         self.edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous().to(self.device)
         self.edge_index = torch.cat((self.edge_index, self.edge_index[[1, 0]]), dim=1)
     
-        self.user_embedding = nn.Embedding(self.n_users, self.feat_embed_dim)
-        self.item_id_embedding = nn.Embedding(self.n_items, self.feat_embed_dim)
-        self.user_modal_embedding = nn.Embedding(self.n_users, self.feat_embed_dim)
+        self.user_embedding = nn.Embedding(self.n_users, self.embedding_dim)
+        self.item_id_embedding = nn.Embedding(self.n_items, self.embedding_dim)
+        self.user_t_embedding = nn.Embedding(self.n_users, self.embedding_dim)
+        self.user_v_embedding = nn.Embedding(self.n_users, self.embedding_dim)
+
         nn.init.xavier_uniform_(self.user_embedding.weight)
         nn.init.xavier_uniform_(self.item_id_embedding.weight)
-        nn.init.xavier_uniform_(self.user_modal_embedding.weight)
-        
-        # self.preference = nn.Parameter(nn.init.xavier_normal_(torch.tensor(
-        #         np.random.randn(self.n_users, self.feat_embed_dim), dtype=torch.float32, requires_grad=True),
-        #         gain=1).to(self.device))
+
+        # sota v1
+        self.weight_u = nn.Parameter(nn.init.xavier_normal_(
+            torch.tensor(np.random.randn(self.num_user, 2, 1), dtype=torch.float32, requires_grad=True)))
+        self.weight_u.data = F.softmax(self.weight_u, dim=1)
+        self.weight_i = nn.Parameter(nn.init.xavier_normal_(
+            torch.tensor(np.random.randn(self.num_item, 2, 1), dtype=torch.float32, requires_grad=True)))
+        self.weight_i.data = F.softmax(self.weight_i, dim=1)
 
         dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
         mm_adj_file = os.path.join(dataset_path, 'mm_adj_freedomdsp_{}_{}.pt'.format(self.knn_k, int(10*self.mm_image_weight)))
 
         if self.v_feat is not None:
             self.image_embedding = nn.Embedding.from_pretrained(self.v_feat, freeze=False)
-            self.image_trs = nn.Linear(self.v_feat.shape[1], self.embedding_dim)
+            self.image_trs = nn.Linear(self.v_feat.shape[1], self.feat_embed_dim)
         if self.t_feat is not None:
             self.text_embedding = nn.Embedding.from_pretrained(self.t_feat, freeze=False)
-            self.text_trs = nn.Linear(self.t_feat.shape[1], self.embedding_dim)
+            self.text_trs = nn.Linear(self.t_feat.shape[1], self.feat_embed_dim)
 
         if os.path.exists(mm_adj_file):
             self.mm_adj = torch.load(mm_adj_file)
@@ -102,10 +104,10 @@ class DRAGON(GeneralRecommender):
 
         self.user_mlp_layer = nn.Linear(self.feat_embed_dim * 2, self.feat_embed_dim)
         if self.v_feat is not None:            
-            self.v_gcn = GCN(self.user_modal_embedding.weight, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
+            self.v_gcn = GCN(self.user_v_embedding, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
                              device=self.device, use_mlp=False)  # 256)
         if self.t_feat is not None:
-            self.t_gcn = GCN(self.user_modal_embedding.weight, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
+            self.t_gcn = GCN(self.user_t_embedding, self.n_users, self.n_items, self.aggr_mode, feat_embed_dim=self.feat_embed_dim,
                              device=self.device, use_mlp=False)
         
         # sota_v1
@@ -118,27 +120,25 @@ class DRAGON(GeneralRecommender):
         self.t_diver_res_blocks = nn.ModuleList()  # 文本模态多样性信息的残差块
 
         # sota_v1
-        self.ffn = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True)
-        self.v_mlp = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True)
-        self.t_mlp = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True)
+        self.ffn = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
+        self.v_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
+        self.t_mlp = FFN(hidden_size=self.dim_latent, inner_hidden_size=self.dim_latent*4, bias=True)
 
-        for i in range(self.num_blocks):
-            # 视觉模态的同质信息残差块
-            self.v_homo_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
-            # 视觉模态的多样性信息残差块
-            self.v_diver_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
-            # 文本模态的同质信息残差块
-            self.t_homo_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
-            # 文本模态的多样性信息残差块
-            self.t_diver_res_blocks.append(
-                FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU)
-            )
+        # 视觉模态的同质信息残差块
+        self.v_homo_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        # 视觉模态的多样性信息残差块
+        self.v_diver_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        
+        # 文本模态的同质信息残差块
+        self.t_homo_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+        
+        # 文本模态的多样性信息残差块
+        self.t_diver_res_blocks = [
+            FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, bias=True, activation=nn.ReLU) for i in range(self.num_blocks)]
+
         # 添加初始的同质/多样性分离层
         self.v_homo_map = FFN(hidden_size=self.feat_embed_dim, inner_hidden_size=self.feat_embed_dim*4, 
                             bias=True, activation=nn.ReLU)
@@ -200,8 +200,6 @@ class DRAGON(GeneralRecommender):
         return torch.sparse.FloatTensor(i, data, torch.Size((self.n_nodes, self.n_nodes)))
 
     def pre_epoch_processing(self):
-        self.pre_epoch_processing_dragon_v1()
-
         if self.dropout <= .0:
             self.masked_adj = self.norm_adj
             return
@@ -229,7 +227,7 @@ class DRAGON(GeneralRecommender):
         values = rows_inv_sqrt * cols_inv_sqrt
         return values
 
-    def pre_epoch_processing_dragon_v1(self):
+    def pre_epoch_processing(self):
         # sota_v1
         self.epoch_user_graph, self.user_weight_matrix = self.topk_sample(self.k)
         self.user_weight_matrix = self.user_weight_matrix.to(self.device)
@@ -305,19 +303,19 @@ class DRAGON(GeneralRecommender):
         u_g_embeddings, i_g_embeddings = torch.split(all_embeddings, [self.n_users, self.n_items], dim=0)
         return u_g_embeddings, i_g_embeddings + h
 
-    def forward_v2(self, interaction):
+    def forward_new(self, interaction):
         # dragon
-        user_nodes, raw_pos_item_nodes, raw_neg_item_nodes = interaction[0], interaction[1], interaction[2]
-        pos_item_nodes = raw_pos_item_nodes + self.n_users
-        neg_item_nodes = raw_neg_item_nodes + self.n_users
+        user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
+        pos_item_nodes += self.n_users
+        neg_item_nodes += self.n_users
 
         if self.v_feat is not None:
-            self.v_rep, _ = self.v_gcn(self.edge_index, self.image_trs(self.v_feat))
+            self.v_rep, _ = self.v_gcn(self.edge_index, self.v_feat)
         if self.t_feat is not None:
-            self.t_rep, _ = self.t_gcn(self.edge_index, self.text_trs(self.t_feat))
+            self.t_rep, _ = self.t_gcn(self.edge_index, self.t_feat)
 
-        v_rep = self.v_rep[self.n_users:]
-        t_rep = self.t_rep[self.n_users:]
+        v_rep = self.v_rep[self.num_user:]
+        t_rep = self.t_rep[self.num_user:]
 
         ############################################ multi-modal information aggregation
         # ****************** 同质信息的处理， 实验中可以放开这部分 ******************
@@ -326,22 +324,21 @@ class DRAGON(GeneralRecommender):
         v_h = v_rep
         for i in range(self.n_layers):
             h = torch.sparse.mm(self.mm_adj, v_h)
-        self.v_item_rep = v_h + h
-        # h_u1 = self.user_graph(self.user_v_embedding.weight, self.epoch_user_graph, self.user_weight_matrix)
-        # v_user_rep = self.user_v_embedding.weight + h_u1
+        v_item_rep = v_h + h
+        h_u1 = self.user_graph(self.user_v_embedding, self.epoch_user_graph, self.user_weight_matrix)
+        v_user_rep = self.user_v_embedding + h_u1
 
         t_h = t_rep
         for i in range(self.n_layers):
             h = torch.sparse.mm(self.mm_adj, t_h)
-        self.t_item_rep = t_h + h
-        # h_u1 = self.user_graph(self.user_t_embedding.weight, self.epoch_user_graph, self.user_weight_matrix)
-        # t_user_rep = self.user_t_embedding.weight + h_u1
+        t_item_rep = t_h + h
+        h_u1 = self.user_graph(self.user_t_embedding, self.epoch_user_graph, self.user_weight_matrix)
+        t_user_rep = self.user_t_embedding + h_u1
 
-        # t_user_rep = torch.unsqueeze(t_user_rep, 2)
-        # v_user_rep = torch.unsqueeze(v_user_rep, 2)
-        # user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
-        # user_rep = torch.squeeze(user_rep)
-        self.modal_user_rep = self.user_modal_embedding.weight
+        t_user_rep = torch.unsqueeze(t_user_rep, 2)
+        v_user_rep = torch.unsqueeze(v_user_rep, 2)
+        user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
+        user_rep = torch.squeeze(user_rep)
        
         # 1. 初始分离同质和多样性信息
         v_homo = self.v_homo_map(v_rep)
@@ -356,26 +353,26 @@ class DRAGON(GeneralRecommender):
         
         # 2. 对同质和多样性信息分别应用残差块
         # 应用多层残差块进行特征融合
-        self.v_homo = self.apply_resnet_blocks(v_homo, self.v_homo_res_blocks)
-        self.v_diver = self.apply_resnet_blocks(v_diver, self.v_diver_res_blocks)
+        v_homo = self.apply_resnet_blocks(v_homo, self.v_homo_res_blocks)
+        v_diver = self.apply_resnet_blocks(v_diver, self.v_diver_res_blocks)
         
-        self.t_homo = self.apply_resnet_blocks(t_homo, self.t_homo_res_blocks)
-        self.t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks)
+        t_homo = self.apply_resnet_blocks(t_homo, self.t_homo_res_blocks)
+        t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks)
 
-        hidden_v_embed_pos = torch.cat((self.modal_user_rep, self.v_item_rep), dim=0)[pos_item_nodes]
-        hidden_t_embed_pos = torch.cat((self.modal_user_rep, self.t_item_rep), dim=0)[pos_item_nodes]
-        hidden_v_embed_neg = torch.cat((self.modal_user_rep, self.v_item_rep), dim=0)[neg_item_nodes]
-        hidden_t_embed_neg = torch.cat((self.modal_user_rep, self.t_item_rep), dim=0)[neg_item_nodes]
+        hidden_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        hidden_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+        hidden_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        hidden_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
 
-        homo_v_embed_pos = torch.cat((self.modal_user_rep, self.v_homo), dim=0)[pos_item_nodes]
-        homo_t_embed_pos = torch.cat((self.modal_user_rep, self.t_homo), dim=0)[pos_item_nodes]
-        homo_v_embed_neg = torch.cat((self.modal_user_rep, self.v_homo), dim=0)[neg_item_nodes]
-        homo_t_embed_neg = torch.cat((self.modal_user_rep, self.t_homo), dim=0)[neg_item_nodes]
+        homo_v_embed_pos = torch.cat((user_rep, v_homo), dim=0)[pos_item_nodes]
+        homo_t_embed_pos = torch.cat((user_rep, t_homo), dim=0)[pos_item_nodes]
+        homo_v_embed_neg = torch.cat((user_rep, v_homo), dim=0)[neg_item_nodes]
+        homo_t_embed_neg = torch.cat((user_rep, t_homo), dim=0)[neg_item_nodes]
 
-        diversity_v_embed_pos = torch.cat((self.modal_user_rep, self.v_diver), dim=0)[pos_item_nodes]
-        diversity_t_embed_pos = torch.cat((self.modal_user_rep, self.t_diver), dim=0)[pos_item_nodes]
-        diversity_v_embed_neg = torch.cat((self.modal_user_rep, self.v_diver), dim=0)[neg_item_nodes]
-        diversity_t_embed_neg = torch.cat((self.modal_user_rep, self.t_diver), dim=0)[neg_item_nodes]
+        diversity_v_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, v_diver), dim=0)[pos_item_nodes]
+        diversity_v_embed_neg = torch.cat((user_rep, v_diver), dim=0)[neg_item_nodes]
+        diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
 
 
         def QKV(user_tensor, k_list):
@@ -391,36 +388,21 @@ class DRAGON(GeneralRecommender):
             final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
             return final_item_rep
 
-        user_tensor = self.modal_user_rep[user_nodes]
+        user_tensor = user_rep[user_nodes]
         k_list = [hidden_v_embed_pos, homo_v_embed_pos, diversity_v_embed_pos, hidden_t_embed_pos, homo_t_embed_pos, diversity_t_embed_pos]
         pos_item_rep = QKV(user_tensor, k_list)
 
         k_list = [hidden_v_embed_neg, homo_v_embed_neg, diversity_v_embed_neg, hidden_t_embed_neg, homo_t_embed_neg, diversity_t_embed_neg] 
         neg_item_rep = QKV(user_tensor, k_list)
+    
+        pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
+        neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
 
-        # return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
-        return user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, t_diver, v_diver
-
+        return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
 
     def bpr_loss(self, users, pos_items, neg_items):
         pos_scores = torch.sum(torch.mul(users, pos_items), dim=1)
         neg_scores = torch.sum(torch.mul(users, neg_items), dim=1)
-
-        maxi = F.logsigmoid(pos_scores - neg_scores)
-        mf_loss = -torch.mean(maxi)
-
-        return mf_loss
-
-    def multi_bpr_loss(self, interact_users, interact_pos_items, interact_neg_items, modal_users,  modal_pos_items, modal_nes_items):
-
-        interact_pos_scores = torch.sum(torch.mul(interact_users, interact_pos_items), dim=1)
-        interact_neg_scores = torch.sum(torch.mul(interact_users, interact_neg_items), dim=1)
-
-        modal_pos_scores = torch.sum(torch.mul(modal_users, modal_pos_items), dim=1)
-        modal_neg_scores = torch.sum(torch.mul(modal_users, modal_nes_items), dim=1)
-
-        pos_scores =  interact_pos_scores + modal_pos_scores
-        neg_scores = interact_neg_scores + modal_neg_scores
 
         maxi = F.logsigmoid(pos_scores - neg_scores)
         mf_loss = -torch.mean(maxi)
@@ -450,71 +432,29 @@ class DRAGON(GeneralRecommender):
         # return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss)
 
         # dragon
-        user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, t_diver, v_diver = self.forward_v2(interaction)
+        pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter = self.forward_v1(interaction)
+        dragon_v1_loss = self.calculate_dragon_v1(users, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter)
+        
+        return batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + dragon_v1_loss
 
-
-        dragon_bpr_loss = self.bpr_loss(user_tensor, pos_item_rep, neg_item_rep)
-        align_loss1 = self.v_t_align_loss(v_homo, t_homo)
-        # diver_loss = self.v_t_diver_loss(t_diver, v_diver)
-
-        # bpr loss + align loss + diver loss
-
-        # multi-bpr score loss
-        # self.modal_weight_loss = 0.001
-        mix_bpr_score_loss = self.multi_bpr_loss(u_g_embeddings, pos_i_g_embeddings, neg_i_g_embeddings, user_tensor, pos_item_rep, neg_item_rep)
-
-        # sum_loss = batch_mf_loss \
-        #     + self.reg_weight * (mf_t_loss + mf_v_loss) \
-        #     + self.mix_bpr_weight_loss * mix_bpr_score_loss \
-        #     + self.dragon_bpr_weight * dragon_bpr_loss \
-        #     + self.align_weight_loss * align_loss1 \
-        #     + self.diver_weight_loss * diver_loss
-        sum_loss = batch_mf_loss \
-            + self.reg_weight * (mf_t_loss + mf_v_loss) \
-            + self.mix_bpr_weight_loss * mix_bpr_score_loss \
-            + self.dragon_bpr_weight * dragon_bpr_loss \
-            + self.align_weight_loss * align_loss1
-        return sum_loss
-
-        # return multi_loss + batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + self.dragon_weight * dragon_v2_loss
-
+    def calculate_dragon_v1(self, user, pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter):
+        loss_value = -torch.mean(torch.log2(torch.sigmoid(pos_scores - neg_scores)))
+        reg_embedding_loss_v = (self.v_preference[user] ** 2).mean() if self.v_preference is not None else 0.0
+        reg_embedding_loss_t = (self.t_preference[user] ** 2).mean() if self.t_preference is not None else 0.0
+        reg_loss = self.reg_weight * (reg_embedding_loss_v + reg_embedding_loss_t)
+        reg_loss += self.reg_weight * (self.weight_u ** 2).mean()
+        align_loss1 = self.v_t_align_loss(v_rep,t_rep)
+        return loss_value + reg_loss + align_loss1
 
     def full_sort_predict(self, interaction):
         user = interaction[0]
 
         restore_user_e, restore_item_e = self.forward(self.norm_adj)
-        u_embeddings = restore_user_e[user]                         # [N, D]
-        scores = torch.matmul(u_embeddings, restore_item_e.t())     # [N, M]
+        u_embeddings = restore_user_e[user]
 
-        # 1 user-interact -- embedding
-        # 2 modal -- embedding   -> score
-
-        # ---------------- 多模态部分 ----------------
-        user_tensor = self.modal_user_rep[user]   # [N, D]
-        k_list = [self.v_item_rep, self.v_homo, self.v_diver,
-                self.t_item_rep, self.t_homo, self.t_diver]  # 每个 [M, D]
-
-        def QKV(user_tensor, k_list):
-            # k_values_tensor: [K, M, D]
-            k_values_tensor = torch.stack(k_list, dim=0)
-
-            # 得到每个模态 k、每个 item m 的注意力分数
-            sim_scores = torch.einsum('nd,kmd->km', user_tensor, k_values_tensor)  # [K, M]
-
-            # 对 K 维做 softmax
-            weights = torch.softmax(sim_scores, dim=0)          # [K, M]
-
-            # 加权融合模态
-            weighted_k = k_values_tensor * weights.unsqueeze(-1)  # [K, M, D]
-            final_item_rep = torch.sum(weighted_k, dim=0)         # [M, D]
-            return final_item_rep
-
-        item_rep = QKV(user_tensor, k_list)          # [M, D]
-        # print("item_rep:", item_rep.shape)
-
-        modal_scores = torch.matmul(user_tensor, item_rep.t())  # [N, D] @ [D, M] -> [N, M]
-        return scores + modal_scores
-
+        # dot with all item embedding to accelerate
+        scores = torch.matmul(u_embeddings, restore_item_e.transpose(0, 1))
+        return scores
 
     def v_t_align_loss(self,v_rep,t_rep):
         def mmd_linear(t_rep, v_rep):
@@ -575,6 +515,87 @@ class DRAGON(GeneralRecommender):
             residual = residual + transformed
         
         return residual
+    
+    def forward_v1(self, interaction):
+        user_nodes, pos_item_nodes, neg_item_nodes = interaction[0], interaction[1], interaction[2]
+        pos_item_nodes += self.n_users
+        neg_item_nodes += self.n_users
+
+        if self.v_feat is not None:
+            self.v_rep, self.v_preference = self.v_gcn(self.edge_index, self.v_feat)
+        if self.t_feat is not None:
+            self.t_rep, self.t_preference = self.t_gcn(self.edge_index, self.t_feat)
+
+        v_rep = self.v_rep[self.n_users:]
+        t_rep = self.t_rep[self.n_users:]
+
+        # ****************** 同质信息的处理， 实验中可以放开这部分 ******************
+        t_h = t_rep
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, t_h)
+        t_item_rep = t_h + h
+
+        t_user_rep = self.t_rep[:self.n_users]
+        h_u1 = self.user_graph(t_user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        t_user_rep = t_user_rep + h_u1
+
+
+        v_h = v_rep
+        for i in range(self.n_layers):
+            h = torch.sparse.mm(self.mm_adj, v_h)
+        v_item_rep = v_h + h
+
+        # user_matrix.shape torch.Size([19445, 1, 40]), u_features.shape. torch.Size([19445, 40, 64, 1]) 
+        # ok: user_matrix: torch.Size([19445, 1, 40]) u_features.shape. torch.Size([19445, 40, 128]) 
+        v_user_rep = self.v_rep[:self.n_users]
+        h_u1 = self.user_graph(v_user_rep, self.epoch_user_graph, self.user_weight_matrix)
+        v_user_rep = v_user_rep + h_u1
+
+        t_user_rep = torch.unsqueeze(t_user_rep, 2)
+        v_user_rep = torch.unsqueeze(v_user_rep, 2)
+        user_rep = torch.matmul(torch.cat((t_user_rep, v_user_rep), dim=2), self.weight_u)
+        user_rep = torch.squeeze(user_rep)
+
+        v_rep_mlp = self.v_mlp(v_rep)
+        t_rep_mlp = self.t_mlp(t_rep)
+        v_rep = v_rep + v_rep_mlp
+        t_rep = t_rep + t_rep_mlp
+
+        item_rep = self.v_weight * (v_rep) + self.t_weight * (t_rep)
+
+        self.result_embed = torch.cat((user_rep, item_rep), dim=0)
+
+        user_tensor = self.result_embed[user_nodes]
+        pos_item_tensor = self.result_embed[pos_item_nodes]
+        neg_item_tensor = self.result_embed[neg_item_nodes]
+        v_inter = torch.cat([v_rep[pos_item_nodes],v_rep[neg_item_nodes]],dim=0)
+        t_inter = torch.cat([t_rep[pos_item_nodes],t_rep[neg_item_nodes]],dim=0)
+
+        diversity_v_embed_pos = torch.cat((user_rep, v_item_rep), dim=0)[pos_item_nodes]
+        diversity_t_embed_pos = torch.cat((user_rep, t_item_rep), dim=0)[pos_item_nodes]
+
+        diversity_v_embed_neg = torch.cat((user_rep, v_item_rep), dim=0)[neg_item_nodes]
+        diversity_t_embed_neg = torch.cat((user_rep, t_item_rep), dim=0)[neg_item_nodes]
+
+        def QKV(user_tensor, k_list):
+            k_values_tensor = torch.stack(k_list)
+            # 步骤1：计算相似度得分（原始注意力分数）
+            sim_scores = torch.einsum('nd,knd->kn', user_tensor, k_values_tensor)  # 形状 [K, N]
+            # 步骤2：沿K维度对分数做Softmax归一化
+            weights = torch.softmax(sim_scores, dim=0)     # 形状 [K, N]
+            # 步骤3：对k向量加权并沿K维度求和
+            weighted_k = k_values_tensor * weights.unsqueeze(-1)         # 形状 [K, N, D]
+            final_item_rep = torch.sum(weighted_k, dim=0)          # 形状 [N, D]
+            return final_item_rep
+
+        k_list = [pos_item_tensor, diversity_v_embed_pos, diversity_t_embed_pos]
+        pos_item_rep = QKV(user_tensor, k_list)
+
+        k_list = [neg_item_tensor, diversity_v_embed_neg, diversity_t_embed_neg]
+        neg_item_rep = QKV(user_tensor, k_list)
+        pos_scores = torch.sum(user_tensor * pos_item_rep, dim=1)
+        neg_scores = torch.sum(user_tensor * neg_item_rep, dim=1)
+        return pos_scores, neg_scores, t_rep, v_rep, v_inter, t_inter
 
 
 class GCN(torch.nn.Module):
@@ -598,13 +619,9 @@ class GCN(torch.nn.Module):
     def forward(self, edge_index, features):
         # features: item multimodal feature
         if self.use_mlp:
-            temp_features = F.leaky_relu(self.linear_1(features))
-            temp_features = F.leaky_relu(self.linear_2(temp_features))
-
+            temp_features = self.linear_1(F.leaky_relu(self.MLP(features)))
         else:
             temp_features = features
-        # print("user.embedding.weight.shape: ", self.user_embedding.weight.shape)
-        # print("tempp_features.shape", temp_features.shape)
         x = torch.cat((self.user_embedding, temp_features), dim=0).to(self.device)
         # x: user + item
         x = F.normalize(x).to(self.device)
@@ -650,8 +667,7 @@ class FFN(torch.nn.Module):
         self.hidden_size = hidden_size
         if inner_hidden_size is None:
             inner_hidden_size = 4 * hidden_size
-        else:
-            self.inner_hidden_size = inner_hidden_size
+        self.inner_hidden_size = inner_hidden_size
         self.layers = torch.nn.Sequential(
             torch.nn.Linear(self.hidden_size, self.inner_hidden_size, bias=bias),
             activation(),
