@@ -99,6 +99,22 @@ def early_stopping(value, best, cur_step, max_step, bigger=True):
     return best, cur_step, stop_flag, update_flag
 
 
+# def dict2str(result_dict):
+#     r""" convert result dict to str
+
+#     Args:
+#         result_dict (dict): result dict
+
+#     Returns:
+#         str: result str
+#     """
+
+#     result_str = ''
+#     for metric, value in result_dict.items():
+#         result_str += str(metric) + ': ' + '%.04f' % value + '    '
+#     return result_str
+
+
 def dict2str(result_dict):
     r""" convert result dict to str
 
@@ -108,11 +124,40 @@ def dict2str(result_dict):
     Returns:
         str: result str
     """
-
-    result_str = ''
+    # 按指标类型分组
+    metrics_by_type = {}
+    k_values = set()
+    
     for metric, value in result_dict.items():
-        result_str += str(metric) + ': ' + '%.04f' % value + '    '
-    return result_str
+        metric_type = metric.split('@')[0]
+        k_value = int(metric.split('@')[1])
+        k_values.add(k_value)
+        
+        if metric_type not in metrics_by_type:
+            metrics_by_type[metric_type] = {}
+        metrics_by_type[metric_type][k_value] = value
+    
+    # 排序K值
+    k_values = sorted(k_values)
+    
+    # 创建表头
+    header = "Metric    " + "".join(f"{k:>8}" for k in k_values)
+    separator = "-" * len(header)
+    
+    result_lines = [header, separator]
+    
+    # 为每个指标类型创建一行
+    for metric_type in sorted(metrics_by_type.keys()):
+        line = f"{metric_type:<9}"
+        for k in k_values:
+            if k in metrics_by_type[metric_type]:
+                line += f"{metrics_by_type[metric_type][k]:>8.4f}"
+            else:
+                line += f"{'':>8}"
+        result_lines.append(line)
+    
+    return '\n'.join(result_lines)
+
 
 
 ############ LATTICE Utilities #########

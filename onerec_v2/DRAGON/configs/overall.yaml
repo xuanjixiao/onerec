@@ -4,8 +4,8 @@ use_gpu: True
 seed: [999]
 
 # multi-modal raw features
-data_path: '../../../../../../workspace_data/DRAGON/data/'
-# data_path: './data/'
+# data_path: '../../../../../../workspace_data/DRAGON/data/'
+data_path: './data/'
 inter_splitting_label: 'x_label'
 filter_out_cod_start_users: True
 is_multimodal_model: True

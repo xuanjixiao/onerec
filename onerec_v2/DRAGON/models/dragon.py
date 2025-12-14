@@ -71,6 +71,18 @@ class DRAGON(GeneralRecommender):
         nn.init.xavier_uniform_(self.item_id_embedding.weight)
         nn.init.xavier_uniform_(self.user_modal_embedding.weight)
         
+
+        ######################## Ablation study switches ########################
+        # Ablation study switches (默认值为 True，保持原有功能)
+        self.use_homogeneity = config['use_homogeneity']
+        self.use_diversity = config['use_diversity']
+        self.use_align_loss = config['use_align_loss']
+        self.use_residual = config['use_residual']
+        ######################## Ablation study switches end #####################
+
+
+
+
         # self.preference = nn.Parameter(nn.init.xavier_normal_(torch.tensor(
         #         np.random.randn(self.n_users, self.feat_embed_dim), dtype=torch.float32, requires_grad=True),
         #         gain=1).to(self.device))
@@ -344,39 +356,52 @@ class DRAGON(GeneralRecommender):
         self.modal_user_rep = self.user_modal_embedding.weight
        
         # 1. 初始分离同质和多样性信息
-        v_homo = self.v_homo_map(v_rep)
-        v_diver = v_rep - v_homo
-        v_diver = self.v_diver_map(v_diver)
-        v_diver = self.diversity_constraint(v_diver)
+        if self.use_homogeneity or self.use_diversity:
+            v_homo = self.v_homo_map(v_rep)
+            if self.use_diversity:
+                v_diver = v_rep - v_homo
+                v_diver = self.v_diver_map(v_diver)
+                v_diver = self.diversity_constraint(v_diver)
+            else:
+                v_diver = torch.zeros_like(v_rep)
+            
+            t_homo = self.t_homo_map(t_rep)
+            if self.use_diversity:
+                t_diver = t_rep - t_homo
+                t_diver = self.t_diver_map(t_diver)
+                t_diver = self.diversity_constraint(t_diver)
+            else:
+                t_diver = torch.zeros_like(t_rep)
+        else:
+            # 如果都不使用，则设置为零向量
+            v_homo = torch.zeros_like(v_rep)
+            v_diver = torch.zeros_like(v_rep)
+            t_homo = torch.zeros_like(t_rep)
+            t_diver = torch.zeros_like(t_rep)
+    
 
-        t_homo = self.t_homo_map(t_rep)
-        t_diver = t_rep - t_homo
-        t_diver = self.t_diver_map(t_diver)
-        t_diver = self.diversity_constraint(t_diver)
-        
         # 2. 对同质和多样性信息分别应用残差块
         # 应用多层残差块进行特征融合
-        self.v_homo = self.apply_resnet_blocks(v_homo, self.v_homo_res_blocks)
-        self.v_diver = self.apply_resnet_blocks(v_diver, self.v_diver_res_blocks)
+        self.v_homo = self.apply_resnet_blocks(v_homo, self.v_homo_res_blocks) if self.use_homogeneity else v_homo
+        self.v_diver = self.apply_resnet_blocks(v_diver, self.v_diver_res_blocks) if self.use_diversity else v_diver
         
-        self.t_homo = self.apply_resnet_blocks(t_homo, self.t_homo_res_blocks)
-        self.t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks)
+        self.t_homo = self.apply_resnet_blocks(t_homo, self.t_homo_res_blocks) if self.use_homogeneity else t_homo
+        self.t_diver = self.apply_resnet_blocks(t_diver, self.t_diver_res_blocks) if self.use_diversity else t_diver
 
         hidden_v_embed_pos = torch.cat((self.modal_user_rep, self.v_item_rep), dim=0)[pos_item_nodes]
         hidden_t_embed_pos = torch.cat((self.modal_user_rep, self.t_item_rep), dim=0)[pos_item_nodes]
         hidden_v_embed_neg = torch.cat((self.modal_user_rep, self.v_item_rep), dim=0)[neg_item_nodes]
         hidden_t_embed_neg = torch.cat((self.modal_user_rep, self.t_item_rep), dim=0)[neg_item_nodes]
 
-        homo_v_embed_pos = torch.cat((self.modal_user_rep, self.v_homo), dim=0)[pos_item_nodes]
-        homo_t_embed_pos = torch.cat((self.modal_user_rep, self.t_homo), dim=0)[pos_item_nodes]
-        homo_v_embed_neg = torch.cat((self.modal_user_rep, self.v_homo), dim=0)[neg_item_nodes]
-        homo_t_embed_neg = torch.cat((self.modal_user_rep, self.t_homo), dim=0)[neg_item_nodes]
+        homo_v_embed_pos = torch.cat((self.modal_user_rep, self.v_homo), dim=0)[pos_item_nodes] if self.use_homogeneity else torch.zeros_like(hidden_v_embed_pos)
+        homo_t_embed_pos = torch.cat((self.modal_user_rep, self.t_homo), dim=0)[pos_item_nodes] if self.use_homogeneity else torch.zeros_like(hidden_t_embed_pos)
+        homo_v_embed_neg = torch.cat((self.modal_user_rep, self.v_homo), dim=0)[neg_item_nodes] if self.use_homogeneity else torch.zeros_like(hidden_v_embed_neg)
+        homo_t_embed_neg = torch.cat((self.modal_user_rep, self.t_homo), dim=0)[neg_item_nodes] if self.use_homogeneity else torch.zeros_like(hidden_t_embed_neg)
 
-        diversity_v_embed_pos = torch.cat((self.modal_user_rep, self.v_diver), dim=0)[pos_item_nodes]
-        diversity_t_embed_pos = torch.cat((self.modal_user_rep, self.t_diver), dim=0)[pos_item_nodes]
-        diversity_v_embed_neg = torch.cat((self.modal_user_rep, self.v_diver), dim=0)[neg_item_nodes]
-        diversity_t_embed_neg = torch.cat((self.modal_user_rep, self.t_diver), dim=0)[neg_item_nodes]
-
+        diversity_v_embed_pos = torch.cat((self.modal_user_rep, self.v_diver), dim=0)[pos_item_nodes] if self.use_diversity else torch.zeros_like(hidden_v_embed_pos)
+        diversity_t_embed_pos = torch.cat((self.modal_user_rep, self.t_diver), dim=0)[pos_item_nodes] if self.use_diversity else torch.zeros_like(hidden_t_embed_pos)
+        diversity_v_embed_neg = torch.cat((self.modal_user_rep, self.v_diver), dim=0)[neg_item_nodes] if self.use_diversity else torch.zeros_like(hidden_v_embed_neg)
+        diversity_t_embed_neg = torch.cat((self.modal_user_rep, self.t_diver), dim=0)[neg_item_nodes] if self.use_diversity else torch.zeros_like(hidden_t_embed_neg)
 
         def QKV(user_tensor, k_list):
             k_values_tensor = torch.stack(k_list)
@@ -392,11 +417,41 @@ class DRAGON(GeneralRecommender):
             return final_item_rep
 
         user_tensor = self.modal_user_rep[user_nodes]
-        k_list = [hidden_v_embed_pos, homo_v_embed_pos, diversity_v_embed_pos, hidden_t_embed_pos, homo_t_embed_pos, diversity_t_embed_pos]
-        pos_item_rep = QKV(user_tensor, k_list)
+        item_reps = {}
 
-        k_list = [hidden_v_embed_neg, homo_v_embed_neg, diversity_v_embed_neg, hidden_t_embed_neg, homo_t_embed_neg, diversity_t_embed_neg] 
-        neg_item_rep = QKV(user_tensor, k_list)
+        for s in ["pos", "neg"]:
+            if s == "pos":
+                hidden_v = hidden_v_embed_pos
+                homo_v = homo_v_embed_pos if self.use_homogeneity else None
+                diver_v = diversity_v_embed_pos if self.use_diversity else None
+                hidden_t = hidden_t_embed_pos
+                homo_t = homo_t_embed_pos if self.use_homogeneity else None
+                diver_t = diversity_t_embed_pos if self.use_diversity else None
+            else:
+                hidden_v = hidden_v_embed_neg
+                homo_v = homo_v_embed_neg if self.use_homogeneity else None
+                diver_v = diversity_v_embed_neg if self.use_diversity else None
+                hidden_t = hidden_t_embed_neg
+                homo_t = homo_t_embed_neg if self.use_homogeneity else None
+                diver_t = diversity_t_embed_neg if self.use_diversity else None
+
+            # 构建 k_list
+            k_list = [hidden_v]
+            if homo_v is not None:
+                k_list.append(homo_v)
+            if diver_v is not None:
+                k_list.append(diver_v)
+
+            k_list.append(hidden_t)
+            if homo_t is not None:
+                k_list.append(homo_t)
+            if diver_t is not None:
+                k_list.append(diver_t)
+
+            item_reps[s] = QKV(user_tensor, k_list)
+
+        pos_item_rep = item_reps["pos"]
+        neg_item_rep = item_reps["neg"]
 
         # return pos_scores, neg_scores, t_homo, v_homo, t_diver, v_diver
         return user_tensor, pos_item_rep, neg_item_rep, t_homo, v_homo, t_diver, v_diver
@@ -454,7 +509,7 @@ class DRAGON(GeneralRecommender):
 
 
         dragon_bpr_loss = self.bpr_loss(user_tensor, pos_item_rep, neg_item_rep)
-        align_loss1 = self.v_t_align_loss(v_homo, t_homo)
+        align_loss1 = self.v_t_align_loss(v_homo, t_homo) if self.use_align_loss else torch.tensor(0.0, device=self.device)
         # diver_loss = self.v_t_diver_loss(t_diver, v_diver)
 
         # bpr loss + align loss + diver loss
@@ -472,8 +527,9 @@ class DRAGON(GeneralRecommender):
         sum_loss = batch_mf_loss \
             + self.reg_weight * (mf_t_loss + mf_v_loss) \
             + self.mix_bpr_weight_loss * mix_bpr_score_loss \
-            + self.dragon_bpr_weight * dragon_bpr_loss \
-            + self.align_weight_loss * align_loss1
+            + self.dragon_bpr_weight * dragon_bpr_loss
+        if self.use_align_loss:
+            sum_loss = sum_loss + self.align_weight_loss * align_loss1
         return sum_loss
 
         # return multi_loss + batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + self.dragon_weight * dragon_v2_loss
@@ -491,8 +547,16 @@ class DRAGON(GeneralRecommender):
 
         # ---------------- 多模态部分 ----------------
         user_tensor = self.modal_user_rep[user]   # [N, D]
-        k_list = [self.v_item_rep, self.v_homo, self.v_diver,
-                self.t_item_rep, self.t_homo, self.t_diver]  # 每个 [M, D]
+        k_list = [self.v_item_rep]
+        if self.use_homogeneity:
+            k_list.append(self.v_homo)
+        if self.use_diversity:
+            k_list.append(self.v_diver)
+        k_list.append(self.t_item_rep)
+        if self.use_homogeneity:
+            k_list.append(self.t_homo)
+        if self.use_diversity:
+            k_list.append(self.t_diver)
 
         def QKV(user_tensor, k_list):
             # k_values_tensor: [K, M, D]
@@ -566,6 +630,8 @@ class DRAGON(GeneralRecommender):
 
     def apply_resnet_blocks(self, rep, res_blocks):
         """应用多层残差块进行特征融合"""
+        if not self.use_residual:
+            return rep
         residual = rep
         for block in res_blocks:
             # 特征变换

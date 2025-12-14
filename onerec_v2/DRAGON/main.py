@@ -17,17 +17,35 @@ if __name__ == '__main__':
     parser.add_argument('--model', '-m', type=str, default='DRAGON', help='name of models')
     parser.add_argument('--dataset', '-d', type=str, default='baby', help='name of datasets')
 
+
+    # 新增四个 ablation 参数解析
+    parser.add_argument('--use_homogeneity', type=eval, default=False, help='whether to use homogeneity info')
+    parser.add_argument('--use_diversity', type=eval, default=False, help='whether to use diversity info')
+    parser.add_argument('--use_align_loss', type=eval, default=False, help='whether to use v-t align loss')
+    parser.add_argument('--use_residual', type=eval, default=False, help='whether to use residual')
+
+    args = parser.parse_args()
+
+    # 从命令行动态构建 config_dict
     config_dict = {
-        #'dropout': [0.2],
-        #'reg_weight': [1e-04, 1e-03],
-        # 'learning_rate': [0.000001],
-        #'reg_weight': [0.0001,0.00001],
-        #'n_layers': [2],
-        #'reg_weight': [0.01],
-        # 'learning_rate': [0.0001],
-        # 'reg_weight': [0.001],
-        # 'gpu_id': 0,
+        'use_homogeneity': args.use_homogeneity,
+        'use_diversity': args.use_diversity,
+        'use_align_loss': args.use_align_loss,
+        'use_residual': args.use_residual,
+        'learning_rate': [0.0005],
+        'reg_weight': 0.001,
+        'mix_bpr_weight_loss': [0.1],
+        'dragon_bpr_weight': [0.1],
+        'align_weight_loss': [0.1],
+        'diver_weight_loss': [0.1,],
     }
+        # use_homogeneity: True  # 是否使用同质性信息
+        # use_diversity: True    # 是否使用多样性信息
+        # use_align_loss: True   # 是否使用 v_t_align_loss
+        # use_residual: True     # 是否使用残差连接
+
+
+
 
     args, _ = parser.parse_known_args()
     print("config_dict", config_dict)

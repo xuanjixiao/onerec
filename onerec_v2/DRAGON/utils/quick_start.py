@@ -89,20 +89,20 @@ def quick_start(model, dataset, config_dict, save_model=True):
             best_test_idx = idx
         idx += 1
 
-        logger.info('best valid result: {}'.format(dict2str(best_valid_result)))
-        logger.info('test result: {}'.format(dict2str(best_test_upon_valid)))
+        logger.info('best valid result  :\n {}'.format(dict2str(best_valid_result)))
+        logger.info('test result        :\n {}'.format(dict2str(best_test_upon_valid)))
         logger.info('████Current BEST████:\nParameters: {}={},\n'
-                    'Valid: {},\nTest: {}\n\n\n'.format(config['hyper_parameters'],
+                    'Valid: \n{},\nTest: \n{}.\n\n\n'.format(config['hyper_parameters'],
             hyper_ret[best_test_idx][0], dict2str(hyper_ret[best_test_idx][1]), dict2str(hyper_ret[best_test_idx][2])))
 
     # log info
     logger.info('\n============All Over=====================')
     for (p, k, v) in hyper_ret:
-        logger.info('Parameters: {}={},\n best valid: {},\n best test: {}'.format(config['hyper_parameters'],
+        logger.info('Parameters: {}={},\n best valid:\n {},\n best test:\n {}'.format(config['hyper_parameters'],
                                                                                   p, dict2str(k), dict2str(v)))
 
     logger.info('\n\n█████████████ BEST ████████████████')
-    logger.info('\tParameters: {}={},\nValid: {},\nTest: {}\n\n'.format(config['hyper_parameters'],
+    logger.info('\tParameters:\n {}={},\nValid:\n{},\nTest:\n{}\n\n'.format(config['hyper_parameters'],
                                                                    hyper_ret[best_test_idx][0],
                                                                    dict2str(hyper_ret[best_test_idx][1]),
                                                                    dict2str(hyper_ret[best_test_idx][2])))
