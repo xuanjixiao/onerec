@@ -5,7 +5,7 @@ Main entry
 # UPDATED: 2022-Feb-15
 ##########################
 """
-
+import ast
 import os
 import argparse
 from utils.quick_start import quick_start
@@ -14,15 +14,23 @@ os.environ['NUMEXPR_MAX_THREADS'] = '48'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', '-m', type=str, default='DRAGON', help='name of models')
-    parser.add_argument('--dataset', '-d', type=str, default='baby', help='name of datasets')
+    parser.add_argument("--model", "-m", type=str, default="DRAGON", help="name of model")
+    parser.add_argument("--dataset", "-d", type=str, default="baby", help="name of dataset")
 
+    # Ablation 开关参数（True / False）
+    parser.add_argument("--use_homogeneity", type=ast.literal_eval, default=True, help="whether to use homogeneity info (True/False)")
+    parser.add_argument("--use_diversity", type=ast.literal_eval, default=True, help="whether to use diversity info (True/False)")
+    parser.add_argument("--use_align_loss", type=ast.literal_eval, default=True, help="whether to use visual-text alignment loss (True/False)")
+    parser.add_argument("--use_residual", type=ast.literal_eval, default=True, help="whether to use residual connection (True/False)")
 
-    # 新增四个 ablation 参数解析
-    parser.add_argument('--use_homogeneity', type=eval, default=False, help='whether to use homogeneity info')
-    parser.add_argument('--use_diversity', type=eval, default=False, help='whether to use diversity info')
-    parser.add_argument('--use_align_loss', type=eval, default=False, help='whether to use v-t align loss')
-    parser.add_argument('--use_residual', type=eval, default=False, help='whether to use residual')
+    # List 与 Float 参数
+    parser.add_argument("--lr", type=ast.literal_eval, default=[0.0005], help='learning rate list, e.g. "[0.0005, 0.001]"')
+    parser.add_argument("--reg_weight", type=float, default=0.001, help="regularization weight (float)")
+    parser.add_argument("--mix_bpr_weight_loss", type=ast.literal_eval, default=[0.1], help='mix BPR loss weight list, e.g. "[0.1, 0.2]"')
+    parser.add_argument("--dragon_bpr_weight", type=ast.literal_eval, default=[0.1], help='dragon BPR weight list, e.g. "[0.1, 0.2]"')
+    parser.add_argument("--align_weight_loss", type=ast.literal_eval, default=[0.1], help='alignment loss weight list, e.g. "[0.1, 0.2]"')
+    parser.add_argument("--diver_weight_loss", type=ast.literal_eval, default=[0.1], help='diversity loss weight list, e.g. "[0.1, 0.2]"')
+
 
     args = parser.parse_args()
 
@@ -32,12 +40,12 @@ if __name__ == '__main__':
         'use_diversity': args.use_diversity,
         'use_align_loss': args.use_align_loss,
         'use_residual': args.use_residual,
-        'learning_rate': [0.0005],
-        'reg_weight': 0.001,
-        'mix_bpr_weight_loss': [0.1],
-        'dragon_bpr_weight': [0.1],
-        'align_weight_loss': [0.1],
-        'diver_weight_loss': [0.1,],
+        'learning_rate': args.lr,
+        'reg_weight': args.reg_weight,
+        'mix_bpr_weight_loss': args.mix_bpr_weight_loss,
+        'dragon_bpr_weight': args.dragon_bpr_weight,
+        'align_weight_loss': args.align_weight_loss,
+        'diver_weight_loss': args.diver_weight_loss,
     }
         # use_homogeneity: True  # 是否使用同质性信息
         # use_diversity: True    # 是否使用多样性信息
