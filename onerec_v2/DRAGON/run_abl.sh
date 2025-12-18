@@ -1,7 +1,6 @@
 #!/bin/bash
 # ===================================
 #  Ablation Study Runner for DRAGON
-#  Supports list-type parameters (safe string passing to Python)
 #  Saves logs & results under ./ablation/
 # ===================================
 
@@ -9,7 +8,7 @@
 MODEL="DRAGON"
 
 # 设置输出目录
-BASE_DIR="./ablation"
+BASE_DIR="/home/wanglin/Projects/onerec/onerec_v2/DRAGON/ablation"
 LOG_DIR="${BASE_DIR}/logs"
 RESULT_DIR="${BASE_DIR}/results"
 
@@ -20,26 +19,23 @@ for DATASET in "baby" "sports" "clothing"; do
 
     # === 每个 dataset 对应的参数定义 ===
     if [ "$DATASET" == "baby" ]; then
-        lr="[0.0005]"                         
-        reg_weight="0.001"
-        mix_bpr_weight_loss="[0.1]"
-        dragon_bpr_weight="[0.1]"
-        align_weight_loss="[0.1]"
+        lr="[0.05]"                         
+        mix_bpr_weight_loss="[1.2]"
+        dragon_bpr_weight="[0.8]"
+        align_weight_loss="[0.01]"
         diver_weight_loss="[0.1]"
     elif [ "$DATASET" == "sports" ]; then
-        lr="[0.0005]"
-        reg_weight="0.001"
+        lr="[0.05]"
         mix_bpr_weight_loss="[0.1]"
         dragon_bpr_weight="[0.1]"
-        align_weight_loss="[0.1]"
-        diver_weight_loss="[0.1]"
+        align_weight_loss="[0.05]"
+        diver_weight_loss="[0.2]"
     elif [ "$DATASET" == "clothing" ]; then
-        lr="[0.0005]"
-        reg_weight="0.001"
-        mix_bpr_weight_loss="[0.1]"
-        dragon_bpr_weight="[0.1]"
-        align_weight_loss="[0.1]"
-        diver_weight_loss="[0.1]"
+        lr="[0.05]"
+        mix_bpr_weight_loss="[0.8]"
+        dragon_bpr_weight="[0.5]"
+        align_weight_loss="[0.001]"
+        diver_weight_loss="[0.2]"
     fi
 
     # === 四个逻辑开关 ===
@@ -67,7 +63,6 @@ for DATASET in "baby" "sports" "clothing"; do
             --use_align_loss "$use_align_loss" \
             --use_residual "$use_residual" \
             --lr "$lr" \
-            --reg_weight "$reg_weight" \
             --mix_bpr_weight_loss "$mix_bpr_weight_loss" \
             --dragon_bpr_weight "$dragon_bpr_weight" \
             --align_weight_loss "$align_weight_loss" \
@@ -97,3 +92,5 @@ echo "✅ All ablation experiments completed!"
 echo "Results saved in:  ${RESULT_DIR}/"
 echo "Logs saved in:     ${LOG_DIR}/"
 echo "=================================================="
+
+python plot_abl.py

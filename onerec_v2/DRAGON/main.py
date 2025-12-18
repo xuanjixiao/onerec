@@ -25,7 +25,6 @@ if __name__ == '__main__':
 
     # List 与 Float 参数
     parser.add_argument("--lr", type=ast.literal_eval, default=[0.0005], help='learning rate list, e.g. "[0.0005, 0.001]"')
-    parser.add_argument("--reg_weight", type=float, default=0.001, help="regularization weight (float)")
     parser.add_argument("--mix_bpr_weight_loss", type=ast.literal_eval, default=[0.1], help='mix BPR loss weight list, e.g. "[0.1, 0.2]"')
     parser.add_argument("--dragon_bpr_weight", type=ast.literal_eval, default=[0.1], help='dragon BPR weight list, e.g. "[0.1, 0.2]"')
     parser.add_argument("--align_weight_loss", type=ast.literal_eval, default=[0.1], help='alignment loss weight list, e.g. "[0.1, 0.2]"')
@@ -41,7 +40,6 @@ if __name__ == '__main__':
         'use_align_loss': args.use_align_loss,
         'use_residual': args.use_residual,
         'learning_rate': args.lr,
-        'reg_weight': args.reg_weight,
         'mix_bpr_weight_loss': args.mix_bpr_weight_loss,
         'dragon_bpr_weight': args.dragon_bpr_weight,
         'align_weight_loss': args.align_weight_loss,
@@ -51,8 +49,6 @@ if __name__ == '__main__':
         # use_diversity: True    # 是否使用多样性信息
         # use_align_loss: True   # 是否使用 v_t_align_loss
         # use_residual: True     # 是否使用残差连接
-
-
 
 
     args, _ = parser.parse_known_args()
