@@ -1,20 +1,20 @@
 █████████████ BEST ████████████████
-17 Dec 20:17    INFO 	Parameters:
- ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']=(0.05, 0.8, 0.5, 0.001, 0.2, 999),
+21 Dec 15:55    INFO 	Parameters:
+ ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']=(0.05, 0.001, 0.1, 0.01, 0.1, 999),
 Valid:
 Metric           1       3       5      10      20      50
 ----------------------------------------------------------
-map        0.0039  0.0071  0.0084  0.0099  0.0111  0.0121
-ndcg       0.0039  0.0082  0.0106  0.0143  0.0188  0.0251
-precision  0.0039  0.0039  0.0035  0.0029  0.0024  0.0016
-recall     0.0038  0.0115  0.0171  0.0286  0.0468  0.0782,
+map        0.0007  0.0012  0.0014  0.0016  0.0018  0.0021
+ndcg       0.0007  0.0013  0.0017  0.0023  0.0030  0.0047
+precision  0.0007  0.0006  0.0005  0.0005  0.0004  0.0003
+recall     0.0007  0.0018  0.0027  0.0045  0.0074  0.0163,
 Test:
 Metric           1       3       5      10      20      50
 ----------------------------------------------------------
-map        0.0042  0.0072  0.0087  0.0102  0.0115  0.0125
-ndcg       0.0042  0.0085  0.0111  0.0149  0.0195  0.0261
-precision  0.0042  0.0041  0.0038  0.0031  0.0025  0.0017
-recall     0.0040  0.0116  0.0181  0.0298  0.0476  0.0810
+map        0.0006  0.0010  0.0012  0.0014  0.0017  0.0019
+ndcg       0.0006  0.0011  0.0015  0.0021  0.0031  0.0048
+precision  0.0006  0.0005  0.0005  0.0004  0.0004  0.0004
+recall     0.0006  0.0015  0.0026  0.0043  0.0082  0.0168
 
 
-config_dict {'use_homogeneity': False, 'use_diversity': True, 'use_align_loss': True, 'use_residual': False, 'learning_rate': [0.05], 'mix_bpr_weight_loss': [0.8], 'dragon_bpr_weight': [0.5], 'align_weight_loss': [0.001], 'diver_weight_loss': [0.2]}
+config_dict {'use_homogeneity': False, 'use_diversity': True, 'use_align_loss': True, 'use_residual': False, 'learning_rate': [0.05], 'mix_bpr_weight_loss': [0.001], 'dragon_bpr_weight': [0.1], 'align_weight_loss': [0.01], 'diver_weight_loss': [0.1]}

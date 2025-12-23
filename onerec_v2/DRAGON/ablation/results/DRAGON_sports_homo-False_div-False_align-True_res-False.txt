@@ -1,20 +1,20 @@
 █████████████ BEST ████████████████
-17 Dec 17:59    INFO 	Parameters:
- ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']=(0.05, 0.1, 0.1, 0.05, 0.2, 999),
+21 Dec 12:52    INFO 	Parameters:
+ ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']=(0.05, 0.1, 0.5, 0.05, 0.001, 999),
 Valid:
 Metric           1       3       5      10      20      50
 ----------------------------------------------------------
-map        0.0062  0.0095  0.0108  0.0125  0.0138  0.0149
-ndcg       0.0062  0.0109  0.0133  0.0175  0.0226  0.0297
-precision  0.0062  0.0051  0.0043  0.0036  0.0029  0.0019
-recall     0.0058  0.0144  0.0204  0.0333  0.0531  0.0888,
+map        0.0067  0.0098  0.0114  0.0131  0.0145  0.0157
+ndcg       0.0067  0.0112  0.0141  0.0182  0.0235  0.0311
+precision  0.0067  0.0052  0.0046  0.0036  0.0030  0.0020
+recall     0.0063  0.0144  0.0215  0.0341  0.0551  0.0931,
 Test:
 Metric           1       3       5      10      20      50
 ----------------------------------------------------------
-map        0.0071  0.0099  0.0112  0.0128  0.0141  0.0153
-ndcg       0.0071  0.0115  0.0141  0.0180  0.0229  0.0306
-precision  0.0071  0.0056  0.0048  0.0038  0.0030  0.0021
-recall     0.0061  0.0148  0.0211  0.0331  0.0519  0.0898
+map        0.0067  0.0099  0.0114  0.0132  0.0145  0.0158
+ndcg       0.0067  0.0115  0.0144  0.0187  0.0240  0.0319
+precision  0.0067  0.0057  0.0050  0.0040  0.0032  0.0022
+recall     0.0060  0.0151  0.0218  0.0351  0.0553  0.0945
 
 
-config_dict {'use_homogeneity': False, 'use_diversity': False, 'use_align_loss': True, 'use_residual': False, 'learning_rate': [0.05], 'mix_bpr_weight_loss': [0.1], 'dragon_bpr_weight': [0.1], 'align_weight_loss': [0.05], 'diver_weight_loss': [0.2]}
+config_dict {'use_homogeneity': False, 'use_diversity': False, 'use_align_loss': True, 'use_residual': False, 'learning_rate': [0.05], 'mix_bpr_weight_loss': [0.1], 'dragon_bpr_weight': [0.5], 'align_weight_loss': [0.05], 'diver_weight_loss': [0.001]}

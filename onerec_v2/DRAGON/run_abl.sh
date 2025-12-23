@@ -20,22 +20,22 @@ for DATASET in "baby" "sports" "clothing"; do
     # === 每个 dataset 对应的参数定义 ===
     if [ "$DATASET" == "baby" ]; then
         lr="[0.05]"                         
-        mix_bpr_weight_loss="[1.2]"
-        dragon_bpr_weight="[0.8]"
-        align_weight_loss="[0.01]"
-        diver_weight_loss="[0.1]"
+        mix_bpr_weight_loss="[1.0]"
+        dragon_bpr_weight="[0.01]"
+        align_weight_loss="[0.2]"
+        diver_weight_loss="[0.2]"
     elif [ "$DATASET" == "sports" ]; then
         lr="[0.05]"
         mix_bpr_weight_loss="[0.1]"
-        dragon_bpr_weight="[0.1]"
+        dragon_bpr_weight="[0.5]"
         align_weight_loss="[0.05]"
-        diver_weight_loss="[0.2]"
+        diver_weight_loss="[0.001]"
     elif [ "$DATASET" == "clothing" ]; then
         lr="[0.05]"
-        mix_bpr_weight_loss="[0.8]"
-        dragon_bpr_weight="[0.5]"
-        align_weight_loss="[0.001]"
-        diver_weight_loss="[0.2]"
+        mix_bpr_weight_loss="[0.001]"
+        dragon_bpr_weight="[0.1]"
+        align_weight_loss="[0.01]"
+        diver_weight_loss="[0.1]"
     fi
 
     # === 四个逻辑开关 ===

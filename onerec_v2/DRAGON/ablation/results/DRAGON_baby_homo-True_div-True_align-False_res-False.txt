@@ -1,20 +1,20 @@
 █████████████ BEST ████████████████
-17 Dec 14:03    INFO 	Parameters:
- ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']=(0.05, 1.2, 0.8, 0.01, 0.1, 999),
+21 Dec 09:07    INFO 	Parameters:
+ ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']=(0.05, 1.0, 0.01, 0.2, 0.2, 999),
 Valid:
 Metric           1       3       5      10      20      50
 ----------------------------------------------------------
-map        0.0090  0.0130  0.0148  0.0172  0.0189  0.0205
-ndcg       0.0090  0.0148  0.0181  0.0238  0.0305  0.0403
-precision  0.0090  0.0067  0.0057  0.0048  0.0038  0.0026
-recall     0.0085  0.0191  0.0271  0.0449  0.0713  0.1198,
+map        0.0084  0.0123  0.0141  0.0159  0.0173  0.0185
+ndcg       0.0084  0.0139  0.0172  0.0217  0.0270  0.0341
+precision  0.0084  0.0063  0.0055  0.0042  0.0032  0.0020
+recall     0.0080  0.0180  0.0260  0.0398  0.0607  0.0960,
 Test:
 Metric           1       3       5      10      20      50
 ----------------------------------------------------------
-map        0.0081  0.0126  0.0143  0.0166  0.0184  0.0201
-ndcg       0.0081  0.0146  0.0178  0.0236  0.0303  0.0411
-precision  0.0081  0.0071  0.0060  0.0050  0.0040  0.0028
-recall     0.0075  0.0193  0.0270  0.0445  0.0708  0.1239
+map        0.0093  0.0135  0.0153  0.0172  0.0186  0.0198
+ndcg       0.0093  0.0156  0.0189  0.0236  0.0290  0.0365
+precision  0.0093  0.0075  0.0063  0.0047  0.0035  0.0022
+recall     0.0085  0.0204  0.0284  0.0426  0.0637  0.1003
 
 
-config_dict {'use_homogeneity': True, 'use_diversity': True, 'use_align_loss': False, 'use_residual': False, 'learning_rate': [0.05], 'mix_bpr_weight_loss': [1.2], 'dragon_bpr_weight': [0.8], 'align_weight_loss': [0.01], 'diver_weight_loss': [0.1]}
+config_dict {'use_homogeneity': True, 'use_diversity': True, 'use_align_loss': False, 'use_residual': False, 'learning_rate': [0.05], 'mix_bpr_weight_loss': [1.0], 'dragon_bpr_weight': [0.01], 'align_weight_loss': [0.2], 'diver_weight_loss': [0.2]}

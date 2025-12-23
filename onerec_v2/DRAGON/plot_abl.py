@@ -5,7 +5,7 @@ from glob import glob
 
 BASE_DIR = "/home/wanglin/Projects/onerec/onerec_v2/DRAGON/ablation/results"
 OUTPUT_CSV = os.path.join(BASE_DIR, "ablation_summary.csv")
-target_k = 10
+target_k = 20
 
 
 def parse_result_file(path):
