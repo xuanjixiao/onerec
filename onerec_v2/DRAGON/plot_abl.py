@@ -146,7 +146,7 @@ for dataset_name, df_sub in df_k.groupby("dataset"):
     color_df.index = df_sub.index
 
     # === 建立表格 ===
-    plt.figure(figsize=(len(df_sub.columns) * 1.2, 0.35 * len(df_sub)))
+    plt.figure(figsize=(len(df_sub.columns) * 1.2, 0.3 * len(df_sub)))
     cell_text = df_vis[df_vis["dataset"] == dataset_name].values
     col_labels = df_vis.columns.tolist()
 

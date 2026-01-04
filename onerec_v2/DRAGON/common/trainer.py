@@ -115,44 +115,76 @@ class Trainer(AbstractTrainer):
             optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         return optimizer
 
+    # def _train_epoch(self, train_data, epoch_idx, loss_func=None):
+    #     r"""Train the model in an epoch
+
+    #     Args:
+    #         train_data (DataLoader): The train data.
+    #         epoch_idx (int): The current epoch id.
+    #         loss_func (function): The loss function of :attr:`model`. If it is ``None``, the loss function will be
+    #             :attr:`self.model.calculate_loss`. Defaults to ``None``.
+
+    #     Returns:
+    #         float/tuple: The sum of loss returned by all batches in this epoch. If the loss in each batch contains
+    #         multiple parts and the model return these multiple parts loss instead of the sum of loss, It will return a
+    #         tuple which includes the sum of loss in each part.
+    #     """
+    #     self.model.train()
+    #     loss_func = loss_func or self.model.calculate_loss
+    #     total_loss = None
+    #     loss_batches = []
+    #     for batch_idx, interaction in enumerate(train_data):
+    #         self.optimizer.zero_grad()
+    #         losses = loss_func(interaction)
+    #         if isinstance(losses, tuple):
+    #             loss = sum(losses)
+    #             loss_tuple = tuple(per_loss.item() for per_loss in losses)
+    #             total_loss = loss_tuple if total_loss is None else tuple(map(sum, zip(total_loss, loss_tuple)))
+    #         else:
+    #             loss = losses
+    #             total_loss = losses.item() if total_loss is None else total_loss + losses.item()
+    #         self._check_nan(loss)
+    #         loss.backward()
+    #         if self.clip_grad_norm:
+    #             clip_grad_norm_(self.model.parameters(), **self.clip_grad_norm)
+    #         self.optimizer.step()
+    #         loss_batches.append(loss.detach())
+    #         # for test
+    #         #if batch_idx == 0:
+    #         #    break
+    #     return total_loss, loss_batches
+
     def _train_epoch(self, train_data, epoch_idx, loss_func=None):
-        r"""Train the model in an epoch
-
-        Args:
-            train_data (DataLoader): The train data.
-            epoch_idx (int): The current epoch id.
-            loss_func (function): The loss function of :attr:`model`. If it is ``None``, the loss function will be
-                :attr:`self.model.calculate_loss`. Defaults to ``None``.
-
-        Returns:
-            float/tuple: The sum of loss returned by all batches in this epoch. If the loss in each batch contains
-            multiple parts and the model return these multiple parts loss instead of the sum of loss, It will return a
-            tuple which includes the sum of loss in each part.
-        """
+        r"""Train the model in an epoch"""
         self.model.train()
         loss_func = loss_func or self.model.calculate_loss
-        total_loss = None
-        loss_batches = []
+        total_losses = {k: 0.0 for k in ['total_loss', 'bpr_loss', 'dragon_loss']}
+        num_batches = 0
+
         for batch_idx, interaction in enumerate(train_data):
             self.optimizer.zero_grad()
-            losses = loss_func(interaction)
-            if isinstance(losses, tuple):
-                loss = sum(losses)
-                loss_tuple = tuple(per_loss.item() for per_loss in losses)
-                total_loss = loss_tuple if total_loss is None else tuple(map(sum, zip(total_loss, loss_tuple)))
-            else:
-                loss = losses
-                total_loss = losses.item() if total_loss is None else total_loss + losses.item()
+            losses = loss_func(interaction)  # 返回 dict of losses
+
+            loss = losses['total_loss']  # 主损失用于反向传播
             self._check_nan(loss)
             loss.backward()
+
             if self.clip_grad_norm:
                 clip_grad_norm_(self.model.parameters(), **self.clip_grad_norm)
+
             self.optimizer.step()
-            loss_batches.append(loss.detach())
-            # for test
-            #if batch_idx == 0:
-            #    break
-        return total_loss, loss_batches
+
+            # 累加每个 loss 分量
+            for k in total_losses.keys():
+                total_losses[k] += losses[k].item()
+
+            num_batches += 1
+
+        # 取平均
+        for k in total_losses.keys():
+            total_losses[k] /= num_batches
+
+        return total_losses, []
 
     def _valid_epoch(self, valid_data, is_test=False, idx=0):
         r"""Valid the model with valid data
@@ -180,38 +212,112 @@ class Trainer(AbstractTrainer):
             train_loss_output += 'train loss: %.4f' % losses
         return train_loss_output + ']'
 
+    # def fit(self, train_data, valid_data=None, test_data=None, saved=False, verbose=True):
+    #     r"""Train the model based on the train data and the valid data.
+
+    #     Args:
+    #         train_data (DataLoader): the train data
+    #         valid_data (DataLoader, optional): the valid data, default: None.
+    #                                            If it's None, the early_stopping is invalid.
+    #         test_data (DataLoader, optional): None
+    #         verbose (bool, optional): whether to write training and evaluation information to logger, default: True
+    #         saved (bool, optional): whether to save the model parameters, default: True
+
+    #     Returns:
+    #          (float, dict): best valid score and best valid result. If valid_data is None, it returns (-1, None)
+    #     """
+    #     for epoch_idx in range(self.start_epoch, self.epochs):
+    #         # train
+    #         training_start_time = time()
+    #         self.model.pre_epoch_processing()
+    #         train_loss, _ = self._train_epoch(train_data, epoch_idx)
+    #         #for param_group in self.optimizer.param_groups:
+    #         #    print('======lr: ', param_group['lr'])
+    #         self.lr_scheduler.step()
+
+    #         self.train_loss_dict[epoch_idx] = sum(train_loss) if isinstance(train_loss, tuple) else train_loss
+    #         training_end_time = time()
+    #         train_loss_output = \
+    #             self._generate_train_loss_output(epoch_idx, training_start_time, training_end_time, train_loss)
+    #         post_info = self.model.post_epoch_processing()
+    #         if verbose:
+    #             self.logger.info(train_loss_output)
+    #             if post_info is not None:
+    #                 self.logger.info(post_info)
+
+    #         # eval: To ensure the test result is the best model under validation data, set self.eval_step == 1
+    #         if (epoch_idx + 1) % self.eval_step == 0:
+    #             valid_start_time = time()
+    #             valid_score, valid_result = self._valid_epoch(valid_data)
+    #             self.best_valid_score, self.cur_step, stop_flag, update_flag = early_stopping(
+    #                 valid_score, self.best_valid_score, self.cur_step,
+    #                 max_step=self.stopping_step, bigger=self.valid_metric_bigger)
+    #             valid_end_time = time()
+    #             valid_score_output = "epoch %d evaluating [time: %.2fs, valid_score: %f]" % \
+    #                                  (epoch_idx, valid_end_time - valid_start_time, valid_score)
+    #             valid_result_output = 'valid result: \n' + dict2str(valid_result)
+    #             # test
+    #             _, test_result = self._valid_epoch(test_data, False, epoch_idx)
+    #             if verbose:
+    #                 self.logger.info(valid_score_output)
+    #                 self.logger.info(valid_result_output)
+    #                 self.logger.info('test result: \n' + dict2str(test_result))
+    #             if update_flag:
+    #                 update_output = '██ ' + self.config['model'] + '--Best validation results updated!!!'
+    #                 if verbose:
+    #                     self.logger.info(update_output)
+    #                 self.best_valid_result = valid_result
+    #                 self.best_test_upon_valid = test_result
+
+    #             if stop_flag:
+    #                 stop_output = '+++++Finished training, best eval result in epoch %d' % \
+    #                               (epoch_idx - self.cur_step * self.eval_step)
+    #                 if verbose:
+    #                     self.logger.info(stop_output)
+    #                 break
+    #     return self.best_valid_score, self.best_valid_result, self.best_test_upon_valid
     def fit(self, train_data, valid_data=None, test_data=None, saved=False, verbose=True):
         r"""Train the model based on the train data and the valid data.
 
         Args:
             train_data (DataLoader): the train data
             valid_data (DataLoader, optional): the valid data, default: None.
-                                               If it's None, the early_stopping is invalid.
+                                            If it's None, the early_stopping is invalid.
             test_data (DataLoader, optional): None
             verbose (bool, optional): whether to write training and evaluation information to logger, default: True
             saved (bool, optional): whether to save the model parameters, default: True
 
         Returns:
-             (float, dict): best valid score and best valid result. If valid_data is None, it returns (-1, None)
+            (float, dict): best valid score and best valid result. If valid_data is None, it returns (-1, None)
         """
+        # 初始化 loss 日志列表
+        loss_log = []
+
         for epoch_idx in range(self.start_epoch, self.epochs):
             # train
             training_start_time = time()
             self.model.pre_epoch_processing()
-            train_loss, _ = self._train_epoch(train_data, epoch_idx)
-            #for param_group in self.optimizer.param_groups:
-            #    print('======lr: ', param_group['lr'])
+            train_losses, _ = self._train_epoch(train_data, epoch_idx)  # 返回 dict
             self.lr_scheduler.step()
 
-            self.train_loss_dict[epoch_idx] = sum(train_loss) if isinstance(train_loss, tuple) else train_loss
+            # 记录总 loss（兼容旧逻辑）
+            self.train_loss_dict[epoch_idx] = train_losses['total_loss']
+
+            # 生成日志字符串：包含所有 loss 分量
+            loss_str = ", ".join([f"{k}: {v:.6f}" for k, v in train_losses.items()])
             training_end_time = time()
-            train_loss_output = \
-                self._generate_train_loss_output(epoch_idx, training_start_time, training_end_time, train_loss)
+            train_loss_output = f"epoch {epoch_idx} training [time: {training_end_time - training_start_time:.2f}s, {loss_str}]"
+
             post_info = self.model.post_epoch_processing()
             if verbose:
                 self.logger.info(train_loss_output)
                 if post_info is not None:
                     self.logger.info(post_info)
+
+            # 保存当前 epoch 的 loss 到日志
+            log_entry = {'epoch': epoch_idx}
+            log_entry.update({k: round(v, 6) for k, v in train_losses.items()})
+            loss_log.append(log_entry)
 
             # eval: To ensure the test result is the best model under validation data, set self.eval_step == 1
             if (epoch_idx + 1) % self.eval_step == 0:
@@ -222,7 +328,7 @@ class Trainer(AbstractTrainer):
                     max_step=self.stopping_step, bigger=self.valid_metric_bigger)
                 valid_end_time = time()
                 valid_score_output = "epoch %d evaluating [time: %.2fs, valid_score: %f]" % \
-                                     (epoch_idx, valid_end_time - valid_start_time, valid_score)
+                                    (epoch_idx, valid_end_time - valid_start_time, valid_score)
                 valid_result_output = 'valid result: \n' + dict2str(valid_result)
                 # test
                 _, test_result = self._valid_epoch(test_data, False, epoch_idx)
@@ -239,12 +345,26 @@ class Trainer(AbstractTrainer):
 
                 if stop_flag:
                     stop_output = '+++++Finished training, best eval result in epoch %d' % \
-                                  (epoch_idx - self.cur_step * self.eval_step)
+                                (epoch_idx - self.cur_step * self.eval_step)
                     if verbose:
                         self.logger.info(stop_output)
                     break
-        return self.best_valid_score, self.best_valid_result, self.best_test_upon_valid
 
+        # === 训练结束后保存 loss 到 CSV ===
+        try:
+            import pandas as pd
+            # 确保 checkpoint_dir 存在
+            checkpoint_dir = self.config['checkpoint_dir']
+            os.makedirs(checkpoint_dir, exist_ok=True)  # <<< 关键修复
+
+            csv_path = os.path.join(checkpoint_dir, 'loss_log.csv')
+            df_loss = pd.DataFrame(loss_log)
+            df_loss.to_csv(csv_path, index=False)
+            self.logger.info(f"Training finished. Loss log saved to {csv_path}")
+        except Exception as e:
+            self.logger.warning(f"Failed to save loss log: {e}")
+
+        return self.best_valid_score, self.best_valid_result, self.best_test_upon_valid
 
     @torch.no_grad()
     def evaluate(self, eval_data, is_test=False, idx=0):

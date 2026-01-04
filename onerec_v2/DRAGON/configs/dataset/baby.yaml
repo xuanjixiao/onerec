@@ -10,7 +10,6 @@ TEXT_ID_FIELD: description
 filter_out_cod_start_users: True
 
 inter_file_name: 'baby14-indexed-v4.inter'
-# inter_file_name: 'baby.inter'
 text_file_name: 'meta-games-indexed.csv'
 img_dir_name: 'img'
 

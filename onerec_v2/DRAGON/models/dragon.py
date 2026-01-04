@@ -530,7 +530,11 @@ class DRAGON(GeneralRecommender):
             + self.dragon_bpr_weight * dragon_bpr_loss \
             + self.align_weight_loss * align_loss1 \
             + self.diver_weight_loss * diver_loss
-        return sum_loss
+        return {
+            'total_loss': sum_loss,
+            'bpr_loss': mix_bpr_score_loss,
+            'dragon_loss': dragon_bpr_loss
+        }
 
         # return multi_loss + batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + self.dragon_weight * dragon_v2_loss
 

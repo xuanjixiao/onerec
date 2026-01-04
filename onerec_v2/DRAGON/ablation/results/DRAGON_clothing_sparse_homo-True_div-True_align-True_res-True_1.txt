@@ -1,0 +1,20 @@
+█████████████ BEST ████████████████
+30 Dec 11:06    INFO 	Parameters:
+ ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']=(0.05, 0.001, 0.1, 0.01, 0.1, 999),
+Valid:
+Metric           1       3       5      10      20      50
+----------------------------------------------------------
+map        0.0147  0.0241  0.0269  0.0301  0.0320  0.0331
+ndcg       0.0147  0.0274  0.0325  0.0403  0.0473  0.0547
+precision  0.0147  0.0124  0.0099  0.0074  0.0051  0.0028
+recall     0.0147  0.0371  0.0495  0.0736  0.1018  0.1396,
+Test:
+Metric           1       3       5      10      20      50
+----------------------------------------------------------
+map        0.0119  0.0203  0.0243  0.0279  0.0301  0.0313
+ndcg       0.0119  0.0231  0.0303  0.0392  0.0468  0.0547
+precision  0.0119  0.0104  0.0097  0.0076  0.0053  0.0029
+recall     0.0119  0.0312  0.0487  0.0764  0.1061  0.1457
+
+
+config_dict {'use_homogeneity': True, 'use_diversity': True, 'use_align_loss': True, 'use_residual': True, 'learning_rate': [0.05], 'mix_bpr_weight_loss': [0.001], 'dragon_bpr_weight': [0.1], 'align_weight_loss': [0.01], 'diver_weight_loss': [0.1], 'seed': [999]}

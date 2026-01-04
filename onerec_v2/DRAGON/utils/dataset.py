@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from utils.data_utils import (ImageResize, ImagePad, image_to_tensor, load_decompress_img_from_lmdb_value)
 import lmdb
-
+import pdb
 
 class RecDataset(object):
     def __init__(self, config, df=None):
@@ -50,6 +50,7 @@ class RecDataset(object):
                 raise ValueError('File {} not exist'.format(file_path))
 
         # load rating file from data path?
+        # pdb.set_trace()
         self.load_inter_graph(config['inter_file_name'])
         self.item_num = int(max(self.df[self.iid_field].values)) + 1
         self.user_num = int(max(self.df[self.uid_field].values)) + 1
@@ -63,6 +64,7 @@ class RecDataset(object):
 
     def split(self):
         dfs = []
+        # pdb.set_trace()
         # splitting into training/validation/test
         for i in range(3):
             temp_df = self.df[self.df[self.splitting_label] == i].copy()
@@ -83,6 +85,42 @@ class RecDataset(object):
         full_ds = [self.copy(_) for _ in dfs]
         return full_ds
 
+    # def split(self):
+    #     # 创建三个数据集容器
+    #     dfs = [pd.DataFrame(), pd.DataFrame(), pd.DataFrame()]
+        
+    #     # 训练集 = splitting_label==0
+    #     train_df = self.df[self.df[self.splitting_label] == 0].copy()
+        
+    #     # 验证集 = 训练集的副本 (完全相同的训练数据)
+    #     val_df = train_df.copy()
+        
+    #     # 测试集 = splitting_label==1
+    #     test_df = self.df[self.df[self.splitting_label] == 1].copy()
+        
+    #     # 分配数据
+    #     dfs[0] = train_df  # 训练集
+    #     dfs[1] = val_df    # 验证集（与训练集相同）
+    #     dfs[2] = test_df   # 测试集
+        
+    #     # 移除不再需要的列
+    #     for df in dfs:
+    #         if not df.empty:
+    #             df.drop(self.splitting_label, axis=1, inplace=True)
+        
+    #     # 用户过滤逻辑保持不变
+    #     if self.config['filter_out_cod_start_users']:
+    #         train_u = set(dfs[0][self.uid_field].values)
+    #         for i in [1, 2]:
+    #             if not dfs[i].empty:
+    #                 mask = dfs[i][self.uid_field].isin(train_u)
+    #                 dfs[i] = dfs[i][mask]
+        
+    #     if self.config['use_raw_features']:
+    #         self._setup_features()
+        
+    #     return [self.copy(_) for _ in dfs]
+    
     def _setup_features(self):
         file_path = os.path.join(self.dataset_path, self.config['text_file_name'])
         # text中没有feature的补空
