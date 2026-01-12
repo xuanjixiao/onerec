@@ -622,6 +622,26 @@ class DRAGON(GeneralRecommender):
         # 惩罚所有维度间的线性相关性
         loss = (cov ** 2).sum()
         return loss
+    # def v_t_diver_loss(self, v_rep, t_rep):
+    #     # v_rep, t_rep: [batch, d]
+    #     eps = 1e-8
+        
+    #     # 1. 中心化 (Centering)
+    #     v = v_rep - v_rep.mean(dim=0, keepdim=True)
+    #     t = t_rep - t_rep.mean(dim=0, keepdim=True)
+        
+    #     # 2. 计算每个维度的标准差 (Standardization)
+    #     v_std = torch.sqrt(torch.var(v, dim=0) + eps) # [d]
+    #     t_std = torch.sqrt(torch.var(t, dim=0) + eps) # [d]
+        
+    #     # 3. 计算跨模态相关系数矩阵 (Correlation Matrix)
+    #     # [d, d] = (v^T @ t) / (std_v * std_t * (n-1))
+    #     corr = (v.t() @ t) / ((v_rep.size(0) - 1) * (v_std.unsqueeze(1) @ t_std.unsqueeze(0)) + eps)
+        
+    #     # 4. 惩罚相关性的平方 (Frobenius Norm squared)
+    #     loss = (corr ** 2).sum()
+    #     return loss
+
 
     def diversity_constraint(self, diver_rep):
         """

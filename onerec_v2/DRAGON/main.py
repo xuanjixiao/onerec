@@ -22,6 +22,7 @@ if __name__ == '__main__':
     parser.add_argument("--use_diversity", type=ast.literal_eval, default=True, help="whether to use diversity info (True/False)")
     parser.add_argument("--use_align_loss", type=ast.literal_eval, default=True, help="whether to use visual-text alignment loss (True/False)")
     parser.add_argument("--use_residual", type=ast.literal_eval, default=True, help="whether to use residual connection (True/False)")
+    parser.add_argument("--gpu_id", type=int, default=0, help="gpu id")
 
     # List 与 Float 参数
     # parser.add_argument("--lr", type=ast.literal_eval, default=[0.0005], help='learning rate list, e.g. "[0.0005, 0.001]"')
@@ -29,7 +30,6 @@ if __name__ == '__main__':
     # parser.add_argument("--dragon_bpr_weight", type=ast.literal_eval, default=[0.1], help='dragon BPR weight list, e.g. "[0.1, 0.2]"')
     # parser.add_argument("--align_weight_loss", type=ast.literal_eval, default=[0.1], help='alignment loss weight list, e.g. "[0.1, 0.2]"')
     # parser.add_argument("--diver_weight_loss", type=ast.literal_eval, default=[0.1], help='diversity loss weight list, e.g. "[0.1, 0.2]"')
-
 
     args = parser.parse_args()
 
@@ -46,8 +46,6 @@ if __name__ == '__main__':
     #     'diver_weight_loss': args.diver_weight_loss,
     # }
 
-
-
     if args.dataset == 'baby_sparse':
         config_dict = {
             'use_homogeneity': args.use_homogeneity,
@@ -55,10 +53,10 @@ if __name__ == '__main__':
             'use_align_loss': args.use_align_loss,
             'use_residual': args.use_residual,
             'learning_rate': [0.05],
-            'mix_bpr_weight_loss': [1.0],
-            'dragon_bpr_weight': [0.01],
-            'align_weight_loss': [0.2],
-            'diver_weight_loss': [0.2],
+            'mix_bpr_weight_loss': [0.8],
+            'dragon_bpr_weight': [0.001],
+            'align_weight_loss': [0.1],
+            'diver_weight_loss': [0.05],
             'seed': [999],
         }
     elif args.dataset == 'clothing_sparse':
@@ -89,7 +87,7 @@ if __name__ == '__main__':
         }
 
     # config_dict = {
-    #     'gpu_id': 0,
+    #     'gpu_id': args.gpu_id,
     # }
 
     args, _ = parser.parse_known_args()

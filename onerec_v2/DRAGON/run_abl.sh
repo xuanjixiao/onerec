@@ -17,12 +17,12 @@ mkdir -p "$LOG_DIR" "$RESULT_DIR"
 # 遍历数据集
 for DATASET in "baby_sparse" "sports_sparse" "clothing_sparse"; do
 
-
     # === 四个逻辑开关 ===
     for use_homogeneity in True False; do
     for use_diversity in True False; do
     for use_align_loss in True False; do
     for use_residual in True False; do
+    
     for i in 1 2 3; do
         # === 构造输出文件命名 ===
         CONFIG_NAME="${MODEL}_${DATASET}_homo-${use_homogeneity}_div-${use_diversity}_align-${use_align_loss}_res-${use_residual}"
@@ -42,6 +42,7 @@ for DATASET in "baby_sparse" "sports_sparse" "clothing_sparse"; do
             --use_diversity "$use_diversity" \
             --use_align_loss "$use_align_loss" \
             --use_residual "$use_residual" \
+            --gpu_id 0 \
             > "$LOG_FILE" 2>&1
 
         # === 提取结果 ===
