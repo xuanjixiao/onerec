@@ -331,19 +331,27 @@ class EvalDataLoader(AbstractDataLoader):
         additional_dataset: training dataset in evaluation
     """
     def __init__(self, config, dataset, additional_dataset=None,
-                 batch_size=1, shuffle=False):
+                 batch_size=1, shuffle=False,is_same_as_train=False):
         super().__init__(config, dataset, additional_dataset=additional_dataset,
                          batch_size=batch_size, neg_sampling=False, shuffle=shuffle)
-
         if additional_dataset is None:
             raise ValueError('Training datasets is nan')
+        # 新增：检查是否相同数据集
+        # import pdb
+        # pdb.set_trace()
+        self.is_same_as_train = False
         self.eval_items_per_u = []
         self.eval_len_list = []
         self.train_pos_len_list = []
-
         self.eval_u = self.dataset.df[self.dataset.uid_field].unique()
         # special for eval dataloader
-        self.pos_items_per_u = self._get_pos_items_per_u(self.eval_u).to(self.device)
+                # 修改：当相同数据集时不进行过滤
+        if not self.is_same_as_train:
+            self.pos_items_per_u = self._get_pos_items_per_u(self.eval_u).to(self.device)
+        else:
+            # 创建空过滤矩阵
+            self.pos_items_per_u = torch.zeros((2, 0), dtype=torch.long).to(self.device)
+        # self.pos_items_per_u = self._get_pos_items_per_u(self.eval_u).to(self.device)
         self._get_eval_items_per_u(self.eval_u)
         # to device
         self.eval_u = torch.tensor(self.eval_u).type(torch.LongTensor).to(self.device)

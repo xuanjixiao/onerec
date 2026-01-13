@@ -510,7 +510,7 @@ class DRAGON(GeneralRecommender):
 
         dragon_bpr_loss = self.bpr_loss(user_tensor, pos_item_rep, neg_item_rep)
         align_loss1 = self.v_t_align_loss(v_homo, t_homo) if self.use_align_loss else torch.tensor(0.0, device=self.device)
-        # diver_loss = self.v_t_diver_loss(t_diver, v_diver)
+        diver_loss = self.v_t_diver_loss(v_diver, t_diver) if self.use_diversity else torch.tensor(0.0, device=self.device)
 
         # bpr loss + align loss + diver loss
 
@@ -527,10 +527,14 @@ class DRAGON(GeneralRecommender):
         sum_loss = batch_mf_loss \
             + self.reg_weight * (mf_t_loss + mf_v_loss) \
             + self.mix_bpr_weight_loss * mix_bpr_score_loss \
-            + self.dragon_bpr_weight * dragon_bpr_loss
-        if self.use_align_loss:
-            sum_loss = sum_loss + self.align_weight_loss * align_loss1
-        return sum_loss
+            + self.dragon_bpr_weight * dragon_bpr_loss \
+            + self.align_weight_loss * align_loss1 \
+            + self.diver_weight_loss * diver_loss
+        return {
+            'total_loss': sum_loss,
+            'bpr_loss': mix_bpr_score_loss,
+            'dragon_loss': dragon_bpr_loss
+        }
 
         # return multi_loss + batch_mf_loss + self.reg_weight * (mf_t_loss + mf_v_loss) + self.dragon_weight * dragon_v2_loss
 
@@ -589,22 +593,55 @@ class DRAGON(GeneralRecommender):
             return mean_diff
         return mmd_linear(v_rep,t_rep)
     
-    def v_t_diver_loss(self,v_rep,t_rep):
-        # 这里是PAMD原始论文的做法
-        dot_prod = torch.sum(torch.mul(v_rep, t_rep), dim=1)
-        L_ort = torch.mean(dot_prod ** 2, dim=0)
+    # def v_t_diver_loss(self,v_rep,t_rep):
+    #     # 这里是PAMD原始论文的做法
+    #     dot_prod = torch.sum(torch.mul(v_rep, t_rep), dim=1)
+    #     L_ort = torch.mean(dot_prod ** 2, dim=0)
 
-        # 我突然想到这里也可以考虑同样的类似于MMD的方法，可以先取均值，再进行计算,如有必要,可以开放下面的部分:
-        # # 计算两个模态的均值向量
-        # mean_t = t_rep.mean(dim=0)  # [dim_latent]
-        # mean_v = v_rep.mean(dim=0)  # [dim_latent]
-        # mean_t = mean_t.squeeze()
-        # mean_v = mean_v.squeeze()
-        # # 计算内积的平方
-        # dot_prod = torch.dot(mean_t, mean_v)  # 标量值
-        # L_ort = dot_prod ** 2  # 内积的平方
-        # # pdb.set_trace()
-        return L_ort
+    #     # 我突然想到这里也可以考虑同样的类似于MMD的方法，可以先取均值，再进行计算,如有必要,可以开放下面的部分:
+    #     # # 计算两个模态的均值向量
+    #     # mean_t = t_rep.mean(dim=0)  # [dim_latent]
+    #     # mean_v = v_rep.mean(dim=0)  # [dim_latent]
+    #     # mean_t = mean_t.squeeze()
+    #     # mean_v = mean_v.squeeze()
+    #     # # 计算内积的平方
+    #     # dot_prod = torch.dot(mean_t, mean_v)  # 标量值
+    #     # L_ort = dot_prod ** 2  # 内积的平方
+    #     # # pdb.set_trace()
+    #     return L_ort
+
+    def v_t_diver_loss(self, v_rep, t_rep):
+        # v_rep, t_rep: [batch, d]
+        v = v_rep - v_rep.mean(dim=0, keepdim=True)
+        t = t_rep - t_rep.mean(dim=0, keepdim=True)
+        # [d, d]: 跨模态的协方差矩阵
+
+        # 修改为 cosin 距离
+        # cos_sim = torch.nn.functional.cosine_similarity(v, t, dim=1).mean()
+        cov = v.t() @ t / (v_rep.size(0) - 1)
+        # 惩罚所有维度间的线性相关性
+        loss = (cov ** 2).sum()
+        return loss
+    # def v_t_diver_loss(self, v_rep, t_rep):
+    #     # v_rep, t_rep: [batch, d]
+    #     eps = 1e-8
+        
+    #     # 1. 中心化 (Centering)
+    #     v = v_rep - v_rep.mean(dim=0, keepdim=True)
+    #     t = t_rep - t_rep.mean(dim=0, keepdim=True)
+        
+    #     # 2. 计算每个维度的标准差 (Standardization)
+    #     v_std = torch.sqrt(torch.var(v, dim=0) + eps) # [d]
+    #     t_std = torch.sqrt(torch.var(t, dim=0) + eps) # [d]
+        
+    #     # 3. 计算跨模态相关系数矩阵 (Correlation Matrix)
+    #     # [d, d] = (v^T @ t) / (std_v * std_t * (n-1))
+    #     corr = (v.t() @ t) / ((v_rep.size(0) - 1) * (v_std.unsqueeze(1) @ t_std.unsqueeze(0)) + eps)
+        
+    #     # 4. 惩罚相关性的平方 (Frobenius Norm squared)
+    #     loss = (corr ** 2).sum()
+    #     return loss
+
 
     def diversity_constraint(self, diver_rep):
         """

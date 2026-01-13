@@ -9,7 +9,7 @@ knn_k: 10
 k: [30,40,50]
 n_mm_layers: 1
 # learning_rate: [0.1, 0.01, 0.001, 0.0001, 0.00001]
-learning_rate: [0.05, 0.001, 0.0005]
+learning_rate: [0.05]
 
 reg_weight: 0.01
 # reg_weight: [0.1, 0.01, 0.001, 0.0001, 0.00001]
@@ -28,11 +28,17 @@ dropout: 0.8
 # dropout: [0.8, 0.9]
 # dragon_weight: [0.5, 0.1, 0.01, 0001]
 
+# TODO: 测试参数的边界，上届和下届
 
-mix_bpr_weight_loss: [0.001, 0.01, 0.1, 0.5, 0.8, 1.0, 1.2]
-dragon_bpr_weight: [0.001, 0.01, 0.1, 0.2, 0.5, 0.8, 1.0]
-align_weight_loss: [0.001, 0.01, 0.05, 0.1, 0.2]
-diver_weight_loss: [0.001, 0.01, 0.05, 0.1, 0.2]
+mix_bpr_weight_loss : [0.001, 0.01, 0.1, 1.0, 10.0]
+dragon_bpr_weight   : [0.001, 0.01, 0.1, 1.0, 10.0]
+align_weight_loss   : [0.001, 0.01, 0.1, 1.0, 10.0]
+diver_weight_loss   : [0.001, 0.01, 0.1, 1.0, 10.0]
+
+# 0.799 ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']
+# =(0.05, 0.001, 0.01, 0.001, 0.001, 999),
+# 0.73  ['learning_rate', 'mix_bpr_weight_loss', 'dragon_bpr_weight', 'align_weight_loss', 'diver_weight_loss', 'seed']
+# =(0.05, 0.001, 0.001, 0.001, 0.001, 999),
 
 hyper_parameters: ["learning_rate", "mix_bpr_weight_loss", "dragon_bpr_weight", "align_weight_loss", "diver_weight_loss"]
 # hyper_parameters: ["mm_image_weight", "k", "u_layers", "n_mm_layers", "knn_k", "aggr_mode", "reg_weight", "learning_rate", "homoge_weight"]

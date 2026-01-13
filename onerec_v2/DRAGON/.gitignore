@@ -1,4 +1,5 @@
-
 /data/
-
+/ablation/results
+/ablation/log
+/sports_para_tuning
 .DS_Store
